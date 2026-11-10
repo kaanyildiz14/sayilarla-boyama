@@ -49,6 +49,7 @@ export class Painter {
   private masks = new Map<number, HTMLCanvasElement>();
   private undoStack: UndoPatch[] = [];
   private frame = 0;
+  private fitted = false;
 
   constructor(
     private canvas: HTMLCanvasElement,
@@ -66,7 +67,6 @@ export class Painter {
     canvas.addEventListener('wheel', this.wheel, { passive: false });
     new ResizeObserver(() => this.resize()).observe(canvas.parentElement!);
     this.resize();
-    this.fit();
   }
 
   get canUndo(): boolean {
@@ -118,6 +118,11 @@ export class Painter {
     this.dpr = window.devicePixelRatio || 1;
     this.canvas.width = Math.round(parent.clientWidth * this.dpr);
     this.canvas.height = Math.round(parent.clientHeight * this.dpr);
+    // ekran ilk açıldığında alan henüz ölçülmemiş olabilir; ilk gerçek boyutta sığdır
+    if (!this.fitted && this.canvas.width > 0 && this.canvas.height > 0) {
+      this.fitted = true;
+      this.fit();
+    }
     this.render();
   }
 
