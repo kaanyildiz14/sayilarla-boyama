@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="theme-color" content="#f6f4ef" />
+    <title>Sayılarla Boyama</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23c8553d'/><text x='16' y='22' font-size='16' text-anchor='middle' fill='white' font-family='Arial'>12</text></svg>" />
+    <link rel="stylesheet" href="./src/stil.css" />
+  </head>
+  <body>
+    <main id="start" class="screen">
+      <div class="card">
+        <h1>Sayılarla Boyama</h1>
+        <p class="lead">Bir fotoğraf seç, numaralı bir boyama şablonuna çevirelim. Sonra burada, taşırmadan boya.</p>
+        <p class="note">Fotoğraf cihazından çıkmaz; her şey bu tarayıcının içinde yapılır.</p>
+
+        <button id="resume" class="secondary" hidden>Kaldığın yerden devam et</button>
+
+        <label class="file-btn">
+          <input type="file" id="file" accept="image/*" />
+          <span id="file-label">Fotoğraf seç</span>
+        </label>
+        <img id="thumb" alt="Seçilen fotoğraf" hidden />
+
+        <fieldset class="detail">
+          <legend>Detay</legend>
+          <label><input type="radio" name="detail" value="sade" /> <b>Sade</b><small>16 renk, büyük alanlar</small></label>
+          <label><input type="radio" name="detail" value="orta" checked /> <b>Orta</b><small>24 renk</small></label>
+          <label><input type="radio" name="detail" value="detayli" /> <b>Detaylı</b><small>32 renk, küçük alanlar</small></label>
+        </fieldset>
+
+        <button id="make" class="primary" disabled>Şablonu oluştur</button>
+        <p id="error" class="error" hidden></p>
+      </div>
+    </main>
+
+    <section id="busy" class="screen" hidden>
+      <div class="spinner"></div>
+      <p id="busy-text">Şablon hazırlanıyor…</p>
+    </section>
+
+    <section id="paint" class="screen" hidden>
+      <header class="toolbar">
+        <button id="back" title="Başlangıç ekranı">‹ Fotoğraflar</button>
+        <button id="undo" disabled>↶ Geri al</button>
+        <label class="brush">Fırça <input type="range" id="brush" min="3" max="80" value="18" /></label>
+        <label class="check"><input type="checkbox" id="nums" checked /> Numaralar</label>
+        <button id="fit">Sığdır</button>
+        <span class="spacer"></span>
+        <span id="saved" class="saved"></span>
+        <button id="dl-template">Şablonu indir</button>
+        <button id="dl-final" class="primary">Resmi kaydet</button>
+      </header>
+      <div id="stage"><canvas id="canvas"></canvas></div>
+      <footer id="palette" aria-label="Renkler"></footer>
+    </section>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

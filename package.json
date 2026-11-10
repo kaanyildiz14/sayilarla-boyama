@@ -1,0 +1,19 @@
+{
+  "name": "sayilarla-boyama",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Fotoğraftan sayılarla boyama şablonu çıkaran ve iPad'de taşmadan boyatan web uygulaması",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6",
+    "vitest": "^3.2.7"
+  }
+}
