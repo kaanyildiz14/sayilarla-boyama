@@ -23,6 +23,8 @@ Galerim ──(＋ Yeni resim)──▶ Fotoğraf + detay ──▶ Hazırlanıy
 | `src/oyun/yardimcilar.ts` | Bulucu (en yakın bölge), değnek (görünen bölgeler), numara görünürlüğü ve boyutu, bulucu kamera ölçeği |
 | `src/oyun/ilerleme.ts` | Biten bölgeler, renk başına kalan, yüzde, renk/resim tamamlanma olayları |
 | `src/boyama/katmanlar.ts` | Çizgi ve numara katmanları, indirilebilir şablon, bitmiş resim |
+| `src/tekrar/hamleler.ts` | Hamle kaydının biçimi, tekrar süresi ve zamanlaması (saf TS) |
+| `src/tekrar/oynat.ts` | Hamle kaydını boş tuvalde baştan oynatan animasyon |
 | `src/depo/` | IndexedDB: bağlantı, sürüm göçü (`db.ts`), çalışmalar (`calismalar.ts`) |
 | `src/platform/` | Web ile mağaza uygulaması arasında farklı çalışan işler (kaydet/paylaş) |
 
@@ -34,6 +36,7 @@ Galerim ──(＋ Yeni resim)──▶ Fotoğraf + detay ──▶ Hazırlanıy
 | `templates` | çalışma id | şablon |
 | `progress` | çalışma id | boya katmanı (PNG baytları) |
 | `settings` | ad | `sonCalisma` |
+| `moves` (sürüm 3) | çalışma id | hamle kaydı: `{ tam, liste }` |
 
 Sürüm 1'deki tek kayıt, açılışta silinmeden ilk çalışmaya ("İlk boyamam") taşınır. Boya katmanı Blob yerine ham bayt (ArrayBuffer) olarak yazılır; Safari bazı ortamlarda IndexedDB'ye Blob yazamıyor.
 
@@ -56,6 +59,14 @@ Boyama ayrı bir tuvalde (`paint`) tutulur. Ekrana sırasıyla beyaz zemin, boya
 İlerleme ayrı bir "bitti" listesi olarak saklanmaz; **boyanın kendisinden** hesaplanır. Çalışma açılırken bütün boya katmanı tek geçişte taranır (`tumKapsamalar`), sonra her fırça darbesi, doldurma ya da geri almada yalnızca o bölgenin kutusu yeniden sayılır (`bolgeKapsamasi`). Böylece geri alma, eski kayıtlar ve fırçayla elle boyama aynı kuralla çalışır; kayıt ile ekran birbirinden kopamaz. Galeri için yalnızca özet (`progress`, `completedAt`) saklanır.
 
 **Ekrana çizim sırası:** beyaz zemin → boya → o anki fırça darbesi → vurgu katmanı (seçili rengin boş bölgeleri, yarı saydam) → bulucunun yanıp sönen bölgesi → çizgiler → numaralar. Numaralar önceden çizilmiş bir resim değil; her karede **ekran pikselinde** yazılır. Böylece yakınlaşınca keskin kalır, uzaktayken (bölge ekranda 6 pikselden küçükse) ve bölge bitince gizlenir. Vurgu katmanı renk seçilince bir kez üretilir, sonra yalnızca durumu değişen bölgenin kutusu yenilenir.
+
+## Hamle kaydı ve tekrar animasyonu
+
+Her boyama işi bir hamle olarak kaydedilir: doldurma (`f`: bölge, renk), değnek (`m`: bölgeler, renk), fırça darbesi (`s`: bölge, renk, kalınlık, noktalar). Geri alınan hamle kayıttan da silinir. Resim bitince kayıt boş bir tuvalde baştan oynatılır; fırça darbeleri de boyarken olduğu gibi bölge maskesiyle kesilir.
+
+- **Süre saate bağlıdır** (1,5–6 sn), kare hızına değil: her karede "şu ana kadar kaç hamle uygulanmış olmalı" hesaplanır. Yavaş cihazda da aynı sürede biter.
+- **Eski çalışmalar:** hamle kaydı gelmeden önce boyanmış resimlerde kayıt eksiktir (`tam: false`). Onlarda tekrar, bitmiş boyanın bölgeleri renk numarası sırasıyla açılarak gösterilir.
+- Son karede kayıt yerine gerçek boya çizilir; böylece küçük farklar görünmez.
 
 ## En zor üç kısım
 

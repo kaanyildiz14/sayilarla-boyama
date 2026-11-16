@@ -11,6 +11,7 @@
 
 import { makeCanvas } from './katmanlar';
 import type { Template } from '../islem/sablon';
+import type { Hamle } from '../tekrar/hamleler';
 import { numaraBoyutu, numaraGorunurMu, odakOlcegi, type Gorus } from '../oyun/yardimcilar';
 
 interface Stroke {
@@ -22,6 +23,10 @@ interface Stroke {
   mask: HTMLCanvasElement;
   last: { x: number; y: number };
   pointerId: number;
+  /** tekrar animasyonu için darbenin noktaları [x0,y0,x1,y1,...] ve kalınlığı */
+  points: number[];
+  width: number;
+  color: number;
 }
 
 interface UndoPatch {
@@ -52,6 +57,10 @@ export class Painter {
   onBolge: (region: number) => void = () => {};
   /** dokun-doldur'da yanlış renkle dokunuldu */
   onYanlisRenk: (region: number) => void = () => {};
+  /** bir hamle yapıldı (tekrar animasyonu için kaydedilir) */
+  onHamle: (h: Hamle) => void = () => {};
+  /** son hamle geri alındı */
+  onGeriAl: () => void = () => {};
   /** fırça kalınlığı, ekran pikseli cinsinden */
   brush = 14;
   showNumbers = true;
@@ -113,6 +122,7 @@ export class Painter {
     if (!p) return;
     this.paintCtx.putImageData(p.data, p.x, p.y);
     this.render();
+    this.onGeriAl();
     for (const r of p.regions) this.onBolge(r);
     this.onChange();
   }
@@ -140,6 +150,7 @@ export class Painter {
     this.yamaKaydet([region], reg.minX, reg.minY, c.width, c.height);
     this.paintCtx.drawImage(c, reg.minX, reg.minY);
     this.render();
+    this.onHamle({ k: 'f', r: region, c: this.colorIndex });
     this.onBolge(region);
     this.onChange();
     return true;
@@ -167,6 +178,7 @@ export class Painter {
       this.paintCtx.drawImage(c, reg.minX, reg.minY);
     }
     this.render();
+    this.onHamle({ k: 'm', rs: regions, c: this.colorIndex });
     for (const r of regions) this.onBolge(r);
     this.onChange();
   }
@@ -387,7 +399,7 @@ export class Painter {
 
   // ---- bölge maskesi ----
 
-  private mask(region: number): HTMLCanvasElement {
+  mask(region: number): HTMLCanvasElement {
     let m = this.masks.get(region);
     if (m) return m;
     const reg = this.t.regions[region];
@@ -421,7 +433,10 @@ export class Painter {
     const ctx = canvas.getContext('2d')!;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    this.stroke = { region, x0: reg.minX, y0: reg.minY, canvas, ctx, mask, last: p, pointerId: e.pointerId };
+    this.stroke = {
+      region, x0: reg.minX, y0: reg.minY, canvas, ctx, mask, last: p, pointerId: e.pointerId,
+      points: [], width: this.brush / this.scale, color: this.colorIndex,
+    };
     this.mode = 'stroke';
     this.segment(p, p);
   }
@@ -431,7 +446,9 @@ export class Painter {
     const { ctx } = s;
     ctx.globalCompositeOperation = 'source-over';
     ctx.strokeStyle = this.color;
-    ctx.lineWidth = this.brush / this.scale;
+    ctx.lineWidth = s.width;
+    if (!s.points.length) s.points.push(Math.round(a.x), Math.round(a.y));
+    s.points.push(Math.round(b.x), Math.round(b.y));
     ctx.beginPath();
     ctx.moveTo(a.x - s.x0, a.y - s.y0);
     ctx.lineTo(b.x - s.x0 + 0.01, b.y - s.y0);
@@ -449,6 +466,7 @@ export class Painter {
     this.paintCtx.drawImage(s.canvas, s.x0, s.y0);
     this.stroke = null;
     this.render();
+    this.onHamle({ k: 's', r: s.region, c: s.color, w: Math.round(s.width * 10) / 10, p: s.points });
     this.onBolge(s.region);
     this.onChange();
   }

@@ -161,3 +161,63 @@ describe('oyun özeti', () => {
     expect((await calismaAc(id))!.calisma.completedAt).toBeUndefined();
   });
 });
+
+describe('hamle kaydı', () => {
+  it('yeni çalışmada kayıt tam ve boş başlar; kaydedilip geri okunur', async () => {
+    const id = await calismaOlustur(sablon, 'orta');
+    expect((await calismaAc(id))!.hamleler).toEqual({ tam: true, liste: [] });
+    const kayit = { tam: true, liste: [{ k: 'f' as const, r: 0, c: 0 }, { k: 's' as const, r: 1, c: 1, w: 4, p: [1, 0, 1, 0] }] };
+    await boyaKaydet(id, new Blob(['b']), undefined, undefined, kayit);
+    expect((await calismaAc(id))!.hamleler).toEqual(kayit);
+  });
+
+  it('hamle kaydı olmayan boyalı (eski) çalışma eksik sayılır', async () => {
+    const id = await calismaOlustur(sablon, 'orta');
+    await boyaKaydet(id, new Blob(['eski boya']));
+    expect((await calismaAc(id))!.hamleler).toEqual({ tam: false, liste: [] });
+  });
+
+  it('çalışma silinince hamle kaydı da silinir', async () => {
+    const id = await calismaOlustur(sablon, 'orta');
+    await boyaKaydet(id, new Blob(['b']), undefined, undefined, { tam: true, liste: [{ k: 'f', r: 0, c: 0 }] });
+    await calismaSil(id);
+    const yeni = await calismaOlustur(sablon, 'orta');
+    expect((await calismaAc(yeni))!.hamleler.liste).toEqual([]);
+  });
+});
+
+describe('sürüm 2 → 3 göçü', () => {
+  it('sürüm 2 veritabanındaki çalışmalar korunur, hamle deposu eklenir', async () => {
+    // sürüm 2'yi elle kur
+    await new Promise<void>((resolve, reject) => {
+      const istek = indexedDB.open(DB_ADI, 2);
+      istek.onupgradeneeded = () => {
+        const db = istek.result;
+        db.createObjectStore('works', { keyPath: 'id' });
+        db.createObjectStore('templates');
+        db.createObjectStore('progress');
+        db.createObjectStore('settings');
+      };
+      istek.onsuccess = () => {
+        const db = istek.result;
+        const tx = db.transaction(['works', 'templates', 'progress'], 'readwrite');
+        tx.objectStore('works').put({ id: 'eski', title: 'Eski resim', createdAt: 1, updatedAt: 1, detail: 'orta', progress: 0.5 });
+        tx.objectStore('templates').put(sablon, 'eski');
+        tx.objectStore('progress').put({ paint: new ArrayBuffer(4) }, 'eski');
+        tx.oncomplete = () => {
+          db.close();
+          resolve();
+        };
+        tx.onerror = () => reject(tx.error);
+      };
+    });
+    const acik = await calismaAc('eski');
+    expect(acik?.calisma.title).toBe('Eski resim');
+    expect(acik?.calisma.progress).toBe(0.5);
+    expect(acik?.paint).toBeTruthy();
+    expect(acik?.hamleler).toEqual({ tam: false, liste: [] });
+    // yeni depoya yazılabiliyor
+    await boyaKaydet('eski', new Blob(['b']), undefined, undefined, { tam: false, liste: [{ k: 'f', r: 0, c: 0 }] });
+    expect((await calismaAc('eski'))!.hamleler.liste).toHaveLength(1);
+  });
+});

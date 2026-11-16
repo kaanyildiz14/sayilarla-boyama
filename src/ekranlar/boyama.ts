@@ -8,6 +8,8 @@ import { Ilerleme, type Degisim } from '../oyun/ilerleme';
 import { bolgeKapsamasi, tumKapsamalar } from '../oyun/kapsama';
 import { enYakinBolge, gorunenBolgeler, kalanBolgeler } from '../oyun/yardimcilar';
 import { saveImage } from '../platform';
+import { bosKayit, type HamleKaydi } from '../tekrar/hamleler';
+import { tekrarOynat, type Tekrar } from '../tekrar/oynat';
 import { $, ekraniGoster } from './ekran';
 
 const KAYIT_GECIKMESI = 1200;
@@ -17,6 +19,8 @@ let aktifId: string | null = null;
 let aktifTemplate: Template | null = null;
 let aktifCizgiler: HTMLCanvasElement | null = null;
 let ilerleme: Ilerleme | null = null;
+let hamleler: HamleKaydi = bosKayit();
+let tekrar: Tekrar | null = null;
 let seciliRenk = 0;
 let kayitZamanlayici = 0;
 let bildirimZamanlayici = 0;
@@ -31,6 +35,8 @@ export function aktifCalismaId(): string | null {
 export async function boyamayiAc(acik: AcikCalisma): Promise<void> {
   await bekleyenKaydiYaz();
   const { calisma, template: t, paint: paintBlob } = acik;
+  hamleler = acik.hamleler;
+  tamamlandiKapat();
   const paint = makeCanvas(t.width, t.height);
   // ilk getContext ayarları belirler; boya sık okunacağı için willReadFrequently
   const paintCtx = paint.getContext('2d', { willReadFrequently: true })!;
@@ -70,6 +76,8 @@ export async function boyamayiAc(acik: AcikCalisma): Promise<void> {
   painter.brush = Number($<HTMLInputElement>('brush').value);
   painter.arac = kayitliArac();
   aracDugmeleriniGuncelle();
+  painter.onHamle = (h) => hamleler.liste.push(h);
+  painter.onGeriAl = () => void hamleler.liste.pop();
   painter.onBolge = (region) => bolgeDegisti(t, region);
   painter.onYanlisRenk = (region) => yanlisRenk(t, region);
   painter.showNumbers = $<HTMLInputElement>('nums').checked;
@@ -100,7 +108,7 @@ async function simdiKaydet(): Promise<void> {
   if (!painter || !aktifId) return;
   try {
     const oyun = ilerleme ? { progress: ilerleme.oran, tamam: ilerleme.tamamMi } : undefined;
-    await boyaKaydet(aktifId, await toBlob(painter.paint), await kapakOlustur(), oyun);
+    await boyaKaydet(aktifId, await toBlob(painter.paint), await kapakOlustur(), oyun, hamleler);
     $('saved').textContent = 'Kaydedildi ✓';
   } catch {
     $('saved').textContent = 'Kaydedilemedi';
@@ -131,7 +139,8 @@ function bolgeDegisti(t: Template, region: number): void {
 function olaylariIsle(d: Degisim): void {
   ilerlemeyiGoster();
   if (d.resimBitti) {
-    bildir('🎉 Tebrikler! Resim tamamlandı.', 4000);
+    bildirimiGizle();
+    tamamlandiGoster(true);
     return;
   }
   if (d.bitenRenkler.length) {
@@ -157,6 +166,7 @@ function ilerlemeyiGoster(): void {
   const yuzde = Math.floor(ilerleme.oran * 100);
   $('progress-fill').style.width = `${ilerleme.oran * 100}%`;
   $('progress-text').textContent = ilerleme.tamamMi ? '✓' : `%${yuzde}`;
+  $('replay-open').hidden = !ilerleme.tamamMi;
   $('palette').querySelectorAll<HTMLButtonElement>('.swatch').forEach((b, i) => {
     const toplam = ilerleme!.toplamBolge(i), kalan = ilerleme!.kalanBolge(i);
     const tamam = ilerleme!.renkTamamMi(i);
@@ -178,6 +188,59 @@ function bildir(mesaj: string, sure = 1800): void {
 
 function bildirimiGizle(): void {
   $('toast').hidden = true;
+}
+
+// ---- tamamlandı ekranı ve tekrar ----
+
+function tamamlandiGoster(kutlama: boolean): void {
+  if (!painter || !aktifTemplate || !aktifCizgiler || !ilerleme) return;
+  $('done').hidden = false;
+  delete $('done').dataset.durum;
+  $('done-text').textContent = `${ilerleme.toplam} bölge, ${aktifTemplate.palette.length} renk. Nasıl boyadığını izle:`;
+  if (kutlama) konfeti();
+  navigator.vibrate?.([60, 40, 60]);
+  tekrariBaslat();
+  $('replay-again').focus();
+}
+
+function tekrariBaslat(): void {
+  if (!painter || !aktifTemplate || !aktifCizgiler) return;
+  tekrar?.durdur();
+  delete $('done').dataset.durum;
+  const p = painter;
+  const buTekrar = tekrarOynat($<HTMLCanvasElement>('replay'), {
+    t: aktifTemplate,
+    paint: p.paint,
+    lines: aktifCizgiler,
+    mask: (r) => p.mask(r),
+    hamleler,
+  });
+  tekrar = buTekrar;
+  void buTekrar.bitti.then(() => {
+    if (tekrar === buTekrar) $('done').dataset.durum = 'bitti';
+  });
+}
+
+function tamamlandiKapat(): void {
+  tekrar?.durdur();
+  tekrar = null;
+  $('done').hidden = true;
+  $('done').querySelector('.confetti')!.replaceChildren();
+}
+
+function konfeti(): void {
+  const kap = $('done').querySelector('.confetti')!;
+  const parcalar = ['🎉', '🎨', '✨', '🖌️', '⭐'];
+  kap.replaceChildren(
+    ...Array.from({ length: 24 }, (_, i) => {
+      const s = document.createElement('span');
+      s.textContent = parcalar[i % parcalar.length];
+      s.style.left = `${(i * 37) % 100}%`;
+      s.style.animationDuration = `${2.2 + ((i * 13) % 10) / 5}s`;
+      s.style.animationDelay = `${((i * 7) % 10) / 10}s`;
+      return s;
+    }),
+  );
 }
 
 // ---- kartela ve araçlar ----
@@ -274,6 +337,14 @@ export function boyamaAraclariniKur(geri: () => void): void {
     geriAl.disabled = !painter?.canUndo;
   });
   $('fit').addEventListener('click', () => painter?.fit());
+  $('replay-open').addEventListener('click', () => tamamlandiGoster(false));
+  $('replay-again').addEventListener('click', tekrariBaslat);
+  $('done-close').addEventListener('click', tamamlandiKapat);
+  $('done-save').addEventListener('click', () => $('dl-final').click());
+  $('done-gallery').addEventListener('click', () => {
+    tamamlandiKapat();
+    geri();
+  });
   $('finder').addEventListener('click', bul);
   $('wand').addEventListener('click', degnek);
   $('tool-tap').addEventListener('click', () => aracSec('dokun'));
@@ -289,7 +360,8 @@ export function boyamaAraclariniKur(geri: () => void): void {
   });
   $('back').addEventListener('click', geri);
   document.addEventListener('keydown', (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && painter && !$('paint').hidden) {
+    if (e.key === 'Escape' && !$('done').hidden) tamamlandiKapat();
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && painter && !$('paint').hidden && $('done').hidden) {
       e.preventDefault();
       geriAl.click();
     }
