@@ -126,3 +126,24 @@ describe('yardımcılar', async () => {
     expect(y.odakOlcegi(2000, 1000, 200, 800, 0.3)).toBe(0.3);
   });
 });
+
+describe('tekrar', async () => {
+  const { tekrarSuresi, uygulanacakHamle, bolgeSirasi } = await import('../src/tekrar/hamleler');
+
+  it('süre hamle sayısına göre 1,5 ile 6 saniye arasında', () => {
+    expect(tekrarSuresi(2)).toBe(1500);
+    expect(tekrarSuresi(20)).toBe(3000);
+    expect(tekrarSuresi(5000)).toBe(6000);
+  });
+
+  it('geçen süreye göre uygulanacak hamle sayısı', () => {
+    expect(uygulanacakHamle(0, 3000, 20)).toBe(0);
+    expect(uygulanacakHamle(1500, 3000, 20)).toBe(10);
+    expect(uygulanacakHamle(9999, 3000, 20)).toBe(20); // süre aşılırsa hepsi
+    expect(uygulanacakHamle(100, 0, 20)).toBe(20);
+  });
+
+  it('eksik kayıtta bölgeler renk numarası sırasıyla gösterilir', () => {
+    expect(bolgeSirasi([2, 0, 1, 0])).toEqual([1, 3, 2, 0]);
+  });
+});

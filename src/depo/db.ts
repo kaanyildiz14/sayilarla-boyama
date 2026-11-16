@@ -6,13 +6,15 @@
 //   templates  şablon                                          anahtar: çalışma id
 //   progress   boya katmanı ve oyun durumu                     anahtar: çalışma id
 //   settings   küçük ayarlar (son açılan çalışma vb.)         anahtar: ad
+// Sürüm 3: tekrar animasyonu için hamle kaydı:
+//   moves      hamle kaydı                                     anahtar: çalışma id
 //
 // Eski kayıt silinmeden önce yeni depolara taşınır; kimsenin boyaması kaybolmaz.
 
 export const DB_ADI = 'sayilarla-boyama';
-export const DB_SURUM = 2;
+export const DB_SURUM = 3;
 
-export const DEPOLAR = ['works', 'templates', 'progress', 'settings'] as const;
+export const DEPOLAR = ['works', 'templates', 'progress', 'settings', 'moves'] as const;
 export type DepoAdi = (typeof DEPOLAR)[number];
 
 function yeniId(): string {
@@ -54,11 +56,15 @@ export function dbAc(): Promise<IDBDatabase> {
     istek.onupgradeneeded = (e) => {
       const db = istek.result;
       const tx = istek.transaction!;
-      db.createObjectStore('works', { keyPath: 'id' });
-      db.createObjectStore('templates');
-      db.createObjectStore('progress');
-      db.createObjectStore('settings');
-      if (e.oldVersion === 1 && db.objectStoreNames.contains('kayit')) surum1denGoc(tx, db);
+      // her sürüm adımı, yalnızca o sürümden eski veritabanlarında çalışır
+      if (e.oldVersion < 2) {
+        db.createObjectStore('works', { keyPath: 'id' });
+        db.createObjectStore('templates');
+        db.createObjectStore('progress');
+        db.createObjectStore('settings');
+        if (e.oldVersion === 1 && db.objectStoreNames.contains('kayit')) surum1denGoc(tx, db);
+      }
+      if (e.oldVersion < 3) db.createObjectStore('moves');
     };
     istek.onsuccess = () => {
       const db = istek.result;

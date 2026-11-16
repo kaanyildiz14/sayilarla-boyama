@@ -188,17 +188,25 @@ test('oyun: yanlış renk, dokun-doldur, renk tamam, resim tamam, geri al', asyn
   await expect(page.locator('.swatch').nth(0)).toHaveClass(/tamam/);
   await expect(page.locator('.swatch').nth(1)).toHaveClass(/selected/);
 
-  // son bölge: resim tamam
+  // son bölge: resim tamam → tamamlandı ekranı ve tekrar animasyonu
+  await expect(page.locator('#replay-open')).toBeHidden();
   await page.mouse.click(sag.x, sag.y);
   await expect(page.locator('#progress-text')).toHaveText('✓');
-  await expect(page.locator('#toast')).toContainText('Tebrikler');
+  await expect(page.locator('#done')).toBeVisible();
+  await expect(page.locator('#done-title')).toContainText('Tamamlandı');
+  await expect(page.locator('#done')).toHaveAttribute('data-durum', 'bitti', { timeout: 15_000 });
+  await page.locator('#done-close').click();
+  await expect(page.locator('#done')).toBeHidden();
 
   // geri al: tamamlanma bozulur, tekrar doldurunca geri gelir
   await page.locator('#undo').click();
   await expect(page.locator('#progress-text')).toHaveText('%50');
   await expect(page.locator('.swatch').nth(1)).not.toHaveClass(/tamam/);
+  await expect(page.locator('#replay-open')).toBeHidden();
   await page.mouse.click(sag.x, sag.y);
-  await expect(page.locator('#progress-text')).toHaveText('✓');
+  await expect(page.locator('#done')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#done')).toBeHidden();
   await expect(page.locator('#saved')).toHaveText('Kaydedildi ✓', { timeout: 10_000 });
 
   // galeride bitti olarak görünür; tekrar açınca ilerleme boyadan hesaplanır
@@ -207,6 +215,20 @@ test('oyun: yanlış renk, dokun-doldur, renk tamam, resim tamam, geri al', asyn
   await page.locator('.work-open').click();
   await expect(page.locator('#progress-text')).toHaveText('✓');
   await expect(page.locator('.swatch.tamam')).toHaveCount(2);
+
+  // bitmiş resim sonradan da izlenebilir; kayıtlı hamlelerle resim yeniden oluşur
+  await expect(page.locator('#done')).toBeHidden();
+  await page.locator('#replay-open').click();
+  await expect(page.locator('#done')).toHaveAttribute('data-durum', 'bitti', { timeout: 15_000 });
+  const renkler = await page.locator('#replay').evaluate((c: HTMLCanvasElement) => {
+    const ctx = c.getContext('2d')!;
+    const al = (x: number) => Array.from(ctx.getImageData(Math.round(c.width * x), Math.round(c.height / 2), 1, 1).data);
+    return [al(0.25), al(0.75)];
+  });
+  expect(renkler[0][0]).toBeGreaterThan(200); // sol: açık sarı
+  expect(renkler[1][2]).toBeGreaterThan(renkler[1][0]); // sağ: mavi
+  await page.locator('#done-gallery').click();
+  await expect(page.locator('#gallery')).toBeVisible();
 });
 
 test('oyun: dokun modunda sürüklemek resmi kaydırır, boyamaz', async ({ page }) => {
@@ -263,6 +285,7 @@ test('yardımcılar: sihirli değnek, bulucu ve geri al', async ({ page }) => {
   await expect(page.locator('.swatch').nth(1)).toHaveClass(/selected/);
   await page.locator('#wand').click();
   await expect(page.locator('#progress-text')).toHaveText('✓');
+  await page.locator('#done-close').click();
 
   // değnek tek "geri al" ile geri gelir
   await page.locator('#undo').click();

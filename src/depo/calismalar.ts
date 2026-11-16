@@ -1,6 +1,7 @@
 // Çalışmalar (galerideki her boyama) için kaydetme / açma işlemleri.
 
 import type { Detail, Template } from '../islem/sablon';
+import { bosKayit, type HamleKaydi } from '../tekrar/hamleler';
 import { islem } from './db';
 
 export interface Calisma {
@@ -41,6 +42,7 @@ export interface AcikCalisma {
   calisma: Calisma;
   template: Template;
   paint: Blob | null;
+  hamleler: HamleKaydi;
 }
 
 function baslik(tarih: number): string {
@@ -66,7 +68,10 @@ export async function calismaAc(id: string): Promise<AcikCalisma | null> {
   let calisma: Calisma | undefined;
   let template: Template | undefined;
   let progress: KayitliBoya | undefined;
-  await islem(['works', 'templates', 'progress', 'settings'], 'readwrite', (tx) => {
+  let hamleler: HamleKaydi | undefined;
+  await islem(['works', 'templates', 'progress', 'settings', 'moves'], 'readwrite', (tx) => {
+    const m = tx.objectStore('moves').get(id);
+    m.onsuccess = () => (hamleler = m.result);
     const w = tx.objectStore('works').get(id);
     const t = tx.objectStore('templates').get(id);
     const p = tx.objectStore('progress').get(id);
@@ -78,7 +83,9 @@ export async function calismaAc(id: string): Promise<AcikCalisma | null> {
     p.onsuccess = () => (progress = p.result);
   });
   if (!calisma || !template) return null;
-  return { calisma, template, paint: blobaCevir(progress?.paint) };
+  const paint = blobaCevir(progress?.paint);
+  // hamle kaydı yoksa: boya da yoksa yeni başlıyor (tam), boya varsa eski çalışma (eksik)
+  return { calisma, template, paint, hamleler: hamleler ?? bosKayit(!paint) };
 }
 
 export interface OyunOzeti {
@@ -87,11 +94,18 @@ export interface OyunOzeti {
   tamam: boolean;
 }
 
-export async function boyaKaydet(id: string, paint: Blob, kapak?: Blob, oyun?: OyunOzeti): Promise<void> {
+export async function boyaKaydet(
+  id: string,
+  paint: Blob,
+  kapak?: Blob,
+  oyun?: OyunOzeti,
+  hamleler?: HamleKaydi,
+): Promise<void> {
   const bayt = await paint.arrayBuffer();
   const kapakBayt = kapak ? await kapak.arrayBuffer() : undefined;
-  await islem(['works', 'progress'], 'readwrite', (tx) => {
+  await islem(['works', 'progress', 'moves'], 'readwrite', (tx) => {
     tx.objectStore('progress').put({ paint: bayt } satisfies KayitliBoya, id);
+    if (hamleler) tx.objectStore('moves').put(hamleler, id);
     calismayiGuncelle(tx, id, (c) => {
       const yeni: Calisma = { ...c, updatedAt: Date.now() };
       if (kapakBayt) yeni.thumbnail = kapakBayt;
@@ -119,7 +133,8 @@ export async function yenidenAdlandir(id: string, title: string): Promise<void> 
 
 /** Çalışmayı şablonu ve boyasıyla birlikte siler. */
 export async function calismaSil(id: string): Promise<void> {
-  await islem(['works', 'templates', 'progress', 'settings'], 'readwrite', (tx) => {
+  await islem(['works', 'templates', 'progress', 'settings', 'moves'], 'readwrite', (tx) => {
+    tx.objectStore('moves').delete(id);
     tx.objectStore('works').delete(id);
     tx.objectStore('templates').delete(id);
     tx.objectStore('progress').delete(id);
