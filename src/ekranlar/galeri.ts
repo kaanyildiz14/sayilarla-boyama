@@ -64,7 +64,6 @@ function kart(c: Calisma): HTMLLIElement {
   } else {
     const yer = document.createElement('span');
     yer.className = 'placeholder';
-    yer.textContent = '🎨';
     ac.appendChild(yer);
   }
   ac.addEventListener('click', () => olaylar.ac(c.id));
@@ -85,7 +84,9 @@ function kart(c: Calisma): HTMLLIElement {
 
   const menu = document.createElement('button');
   menu.className = 'work-menu';
-  menu.textContent = '⋯';
+  // metin simgesi ('⋯') bazı iOS sürümlerinde soru işareti kutusu olarak çıkıyor
+  menu.innerHTML =
+    '<svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg>';
   menu.setAttribute('aria-label', `${c.title} için seçenekler`);
   menu.setAttribute('aria-expanded', 'false');
   bilgi.append(metin, menu);
