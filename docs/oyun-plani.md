@@ -158,6 +158,7 @@ Bir cümleyle: *"Kendi fotoğraflarını, taşırmadan, reklamsız boya."*
 |---|---|---|
 | 24 | iOS + Android paketleri | M |
 | 25 | Yerel fotoğraf seçici, galeriye kaydet, paylaş menüsü, titreşim | M |
+| 25a | **Fotoğraf izinleri:** seçim için Apple'ın seçicisi (izin gerekmez, uygulama sadece seçilen fotoğrafı görür); Fotoğraflar'a kaydederken iOS'un "ekleme izni" uyarısından önce kendi açıklama ekranımız ("Bitmiş resmini galerine kaydetmek için izin isteyeceğiz; fotoğrafların hiçbir yere gönderilmez"). "Tüm fotoğraflara erişim" istenmez | M |
 | 26 | Mağaza görselleri, açıklama, gizlilik politikası | M |
 
 ### Kapsam dışı (W)
