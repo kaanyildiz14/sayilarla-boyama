@@ -143,3 +143,21 @@ describe('sürüm 1 → 2 göçü', () => {
     expect(await sonCalismaId()).toBeNull();
   });
 });
+
+describe('oyun özeti', () => {
+  it('ilerleme ve tamamlanma kaydedilir; geri alınınca tamamlanma kalkar', async () => {
+    const id = await calismaOlustur(sablon, 'orta');
+    await boyaKaydet(id, new Blob(['b']), undefined, { progress: 0.5, tamam: false });
+    let c = (await calismaAc(id))!.calisma;
+    expect(c.progress).toBe(0.5);
+    expect(c.completedAt).toBeUndefined();
+    await boyaKaydet(id, new Blob(['b']), undefined, { progress: 1, tamam: true });
+    c = (await calismaAc(id))!.calisma;
+    const ilk = c.completedAt;
+    expect(ilk).toBeTypeOf('number');
+    await boyaKaydet(id, new Blob(['b']), undefined, { progress: 1, tamam: true });
+    expect((await calismaAc(id))!.calisma.completedAt).toBe(ilk);
+    await boyaKaydet(id, new Blob(['b']), undefined, { progress: 0.75, tamam: false });
+    expect((await calismaAc(id))!.calisma.completedAt).toBeUndefined();
+  });
+});

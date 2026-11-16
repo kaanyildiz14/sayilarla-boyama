@@ -10,8 +10,10 @@ export interface Calisma {
   updatedAt: number;
   /** v1'den taşınan çalışmalarda bilinmiyor */
   detail: Detail | null;
-  /** 0..1 (oyun aşamasında hesaplanacak) */
+  /** 0..1: biten bölge / toplam bölge */
   progress: number;
+  /** resim tamamlandıysa zamanı */
+  completedAt?: number;
   /** galeri kartındaki küçük resim (JPEG baytları); henüz yoksa boş */
   thumbnail?: ArrayBuffer;
 }
@@ -79,12 +81,27 @@ export async function calismaAc(id: string): Promise<AcikCalisma | null> {
   return { calisma, template, paint: blobaCevir(progress?.paint) };
 }
 
-export async function boyaKaydet(id: string, paint: Blob, kapak?: Blob): Promise<void> {
+export interface OyunOzeti {
+  /** 0..1 */
+  progress: number;
+  tamam: boolean;
+}
+
+export async function boyaKaydet(id: string, paint: Blob, kapak?: Blob, oyun?: OyunOzeti): Promise<void> {
   const bayt = await paint.arrayBuffer();
   const kapakBayt = kapak ? await kapak.arrayBuffer() : undefined;
   await islem(['works', 'progress'], 'readwrite', (tx) => {
     tx.objectStore('progress').put({ paint: bayt } satisfies KayitliBoya, id);
-    calismayiGuncelle(tx, id, (c) => ({ ...c, updatedAt: Date.now(), ...(kapakBayt ? { thumbnail: kapakBayt } : {}) }));
+    calismayiGuncelle(tx, id, (c) => {
+      const yeni: Calisma = { ...c, updatedAt: Date.now() };
+      if (kapakBayt) yeni.thumbnail = kapakBayt;
+      if (oyun) {
+        yeni.progress = oyun.progress;
+        if (oyun.tamam) yeni.completedAt = c.completedAt ?? Date.now();
+        else delete yeni.completedAt;
+      }
+      return yeni;
+    });
   });
 }
 
