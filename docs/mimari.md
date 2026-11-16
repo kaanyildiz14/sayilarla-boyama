@@ -18,7 +18,9 @@ Galerim ──(＋ Yeni resim)──▶ Fotoğraf + detay ──▶ Hazırlanıy
 | `src/durum.ts` | Küçük durum kabı (değişince abonelere haber verir) |
 | `src/ekranlar/` | Galerim (`galeri.ts`), yeni resim (`baslangic.ts`), boyama (`boyama.ts`), ekran geçişi |
 | `src/islem/` | Görüntü işleme (saf TS): şablon, k-means, renk, filtre, bölge; `isci.ts` Web Worker, `calistir.ts` fotoğrafı hazırlayıp işçiyi çalıştırır |
-| `src/boyama/painter.ts` | Boyama tuvali: taşmayan fırça, yakınlaştırma, geri al |
+| `src/boyama/painter.ts` | Boyama tuvali: taşmayan fırça, dokun-doldur, yakınlaştırma, geri al |
+| `src/oyun/kapsama.ts` | Bir bölgenin ne kadarının doğru renkle boyandığı (boya piksellerinden) |
+| `src/oyun/ilerleme.ts` | Biten bölgeler, renk başına kalan, yüzde, renk/resim tamamlanma olayları |
 | `src/boyama/katmanlar.ts` | Çizgi ve numara katmanları, indirilebilir şablon, bitmiş resim |
 | `src/depo/` | IndexedDB: bağlantı, sürüm göçü (`db.ts`), çalışmalar (`calismalar.ts`) |
 | `src/platform/` | Web ile mağaza uygulaması arasında farklı çalışan işler (kaydet/paylaş) |
@@ -47,6 +49,10 @@ Region { color, labelX, labelY, labelR, minX, minY, maxX, maxY }
 ```
 
 Boyama ayrı bir tuvalde (`paint`) tutulur. Ekrana sırasıyla beyaz zemin, boya, o anki fırça darbesi, çizgiler ve numaralar çizilir.
+
+## Oyun kuralları ve ilerleme
+
+İlerleme ayrı bir "bitti" listesi olarak saklanmaz; **boyanın kendisinden** hesaplanır. Çalışma açılırken bütün boya katmanı tek geçişte taranır (`tumKapsamalar`), sonra her fırça darbesi, doldurma ya da geri almada yalnızca o bölgenin kutusu yeniden sayılır (`bolgeKapsamasi`). Böylece geri alma, eski kayıtlar ve fırçayla elle boyama aynı kuralla çalışır; kayıt ile ekran birbirinden kopamaz. Galeri için yalnızca özet (`progress`, `completedAt`) saklanır.
 
 ## En zor üç kısım
 

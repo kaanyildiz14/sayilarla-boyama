@@ -1,4 +1,9 @@
-// Boyama ekranı: taşmayan fırça, iki parmakla yakınlaştırma/kaydırma, geri al.
+// Boyama ekranı: taşmayan fırça, dokun-doldur, iki parmakla yakınlaştırma/kaydırma, geri al.
+//
+// Araçlar:
+//   dokun  parmak/fare ile dokununca bölge tek seferde dolar (yalnızca doğru renkle);
+//          sürükleyince resim kayar. Apple Pencil her zaman fırça gibi boyar.
+//   firca  parmak/fare da fırça gibi boyar (Pencil kullanıldıysa parmak sadece kaydırır).
 //
 // Taşmayan fırçanın fikri: fırça darbesi önce ayrı bir tuvale çizilir, sonra
 // darbenin başladığı bölgenin "maskesi" ile kesilir (destination-in). Böylece
@@ -19,17 +24,30 @@ interface Stroke {
 }
 
 interface UndoPatch {
+  region: number;
   x: number;
   y: number;
   data: ImageData;
 }
 
-type Mode = 'idle' | 'stroke' | 'pinch' | 'pan' | 'wait';
+type Mode = 'idle' | 'stroke' | 'tap' | 'pinch' | 'pan' | 'wait';
+
+export type Arac = 'dokun' | 'firca';
+
+/** Dokunuşun "sürükleme" sayılması için gereken hareket (ekran pikseli) */
+const DOKUNMA_TOLERANSI = 8;
 
 const MAX_UNDO = 25;
 
 export class Painter {
   color = '#000000';
+  /** seçili rengin palet sırası (dokun-doldur doğru renk denetimi için) */
+  colorIndex = 0;
+  arac: Arac = 'dokun';
+  /** bir bölgenin boyası değişti (fırça, doldurma ya da geri alma) */
+  onBolge: (region: number) => void = () => {};
+  /** dokun-doldur'da yanlış renkle dokunuldu */
+  onYanlisRenk: (region: number) => void = () => {};
   /** fırça kalınlığı, ekran pikseli cinsinden */
   brush = 14;
   showNumbers = true;
@@ -46,6 +64,7 @@ export class Painter {
   private pointers = new Map<number, { x: number; y: number }>();
   private pinchStart: { dist: number; px: number; py: number; scale: number } | null = null;
   private penSeen = false;
+  private tapStart: { x: number; y: number; pointerId: number } | null = null;
   private masks = new Map<number, HTMLCanvasElement>();
   private undoStack: UndoPatch[] = [];
   private frame = 0;
@@ -78,7 +97,48 @@ export class Painter {
     if (!p) return;
     this.paintCtx.putImageData(p.data, p.x, p.y);
     this.render();
+    this.onBolge(p.region);
     this.onChange();
+  }
+
+  /** Bölgenin sınır kutusundaki boya pikselleri (kapsama hesabı için). */
+  bolgePikselleri(region: number): ImageData {
+    const r = this.t.regions[region];
+    return this.paintCtx.getImageData(r.minX, r.minY, r.maxX - r.minX + 1, r.maxY - r.minY + 1);
+  }
+
+  /** Bölgeyi seçili renkle tamamen doldurur; renk yanlışsa doldurmaz. */
+  doldur(region: number): boolean {
+    if (this.t.regions[region].color !== this.colorIndex) {
+      this.onYanlisRenk(region);
+      return false;
+    }
+    const reg = this.t.regions[region];
+    const mask = this.mask(region);
+    const c = makeCanvas(mask.width, mask.height);
+    const cx = c.getContext('2d')!;
+    cx.fillStyle = this.color;
+    cx.fillRect(0, 0, c.width, c.height);
+    cx.globalCompositeOperation = 'destination-in';
+    cx.drawImage(mask, 0, 0);
+    this.yamaKaydet(region, reg.minX, reg.minY, c.width, c.height);
+    this.paintCtx.drawImage(c, reg.minX, reg.minY);
+    this.render();
+    this.onBolge(region);
+    this.onChange();
+    return true;
+  }
+
+  private yamaKaydet(region: number, x: number, y: number, w: number, h: number): void {
+    this.undoStack.push({ region, x, y, data: this.paintCtx.getImageData(x, y, w, h) });
+    if (this.undoStack.length > MAX_UNDO) this.undoStack.shift();
+  }
+
+  private bolgeAt(screen: { x: number; y: number }): number | null {
+    const p = this.toImage(screen);
+    const x = Math.floor(p.x), y = Math.floor(p.y);
+    if (x < 0 || y < 0 || x >= this.t.width || y >= this.t.height) return null;
+    return this.t.regionMap[y * this.t.width + x];
   }
 
   fit(): void {
@@ -115,9 +175,21 @@ export class Painter {
 
   private resize(): void {
     const parent = this.canvas.parentElement!;
+    // boyut değişince (ör. iPad yan çevrilince) ekranın ortasındaki nokta yerinde kalsın;
+    // yoksa resim ekranın dışına kayıp tuval boş görünür
+    const eskiW = this.canvas.width / this.dpr, eskiH = this.canvas.height / this.dpr;
+    const merkezX = (eskiW / 2 - this.tx) / this.scale, merkezY = (eskiH / 2 - this.ty) / this.scale;
     this.dpr = window.devicePixelRatio || 1;
     this.canvas.width = Math.round(parent.clientWidth * this.dpr);
     this.canvas.height = Math.round(parent.clientHeight * this.dpr);
+    if (this.fitted && this.canvas.width > 0 && this.canvas.height > 0) {
+      const w = this.canvas.width / this.dpr, h = this.canvas.height / this.dpr;
+      const sigdir = Math.min(w / this.t.width, h / this.t.height) * 0.96;
+      // yeni ekranda resim çok küçük kaldıysa sığdır boyutuna getir
+      if (this.scale < sigdir) this.scale = sigdir;
+      this.tx = w / 2 - merkezX * this.scale;
+      this.ty = h / 2 - merkezY * this.scale;
+    }
     // ekran ilk açıldığında alan henüz ölçülmemiş olabilir; ilk gerçek boyutta sığdır
     if (!this.fitted && this.canvas.width > 0 && this.canvas.height > 0) {
       this.fitted = true;
@@ -206,12 +278,11 @@ export class Painter {
   private commitStroke(): void {
     const s = this.stroke;
     if (!s) return;
-    const patch = this.paintCtx.getImageData(s.x0, s.y0, s.canvas.width, s.canvas.height);
-    this.undoStack.push({ x: s.x0, y: s.y0, data: patch });
-    if (this.undoStack.length > MAX_UNDO) this.undoStack.shift();
+    this.yamaKaydet(s.region, s.x0, s.y0, s.canvas.width, s.canvas.height);
     this.paintCtx.drawImage(s.canvas, s.x0, s.y0);
     this.stroke = null;
     this.render();
+    this.onBolge(s.region);
     this.onChange();
   }
 
@@ -228,8 +299,9 @@ export class Painter {
     this.pointers.set(e.pointerId, this.local(e));
 
     if (this.pointers.size === 2) {
-      // ikinci parmak geldi: boyamayı iptal et, yakınlaştırmaya geç
+      // ikinci parmak geldi: boyamayı / dokunmayı iptal et, yakınlaştırmaya geç
       this.stroke = null;
+      this.tapStart = null;
       const [a, b] = [...this.pointers.values()];
       this.pinchStart = { dist: Math.hypot(a.x - b.x, a.y - b.y), px: (a.x + b.x) / 2, py: (a.y + b.y) / 2, scale: this.scale };
       this.mode = 'pinch';
@@ -238,9 +310,20 @@ export class Painter {
     }
     if (this.pointers.size > 2 || this.mode !== 'idle') return;
 
-    const panOnly = (e.pointerType === 'touch' && this.penSeen) || (e.pointerType === 'mouse' && e.button !== 0);
-    if (panOnly) this.mode = 'pan';
-    else this.startStroke(e);
+    if (e.pointerType === 'pen') {
+      this.startStroke(e);
+    } else if (e.pointerType === 'mouse' && e.button !== 0) {
+      this.mode = 'pan';
+    } else if (this.arac === 'dokun') {
+      // dokunma mı sürükleme mi? Parmak kalkınca ya da hareket edince belli olur
+      const p = this.local(e);
+      this.tapStart = { x: p.x, y: p.y, pointerId: e.pointerId };
+      this.mode = 'tap';
+    } else if (e.pointerType === 'touch' && this.penSeen) {
+      this.mode = 'pan';
+    } else {
+      this.startStroke(e);
+    }
   };
 
   private move = (e: PointerEvent): void => {
@@ -260,6 +343,14 @@ export class Painter {
       this.pinchStart.px = px;
       this.pinchStart.py = py;
       this.render();
+    } else if (this.mode === 'tap' && this.tapStart) {
+      if (Math.hypot(cur.x - this.tapStart.x, cur.y - this.tapStart.y) > DOKUNMA_TOLERANSI) {
+        this.mode = 'pan';
+        this.tx += cur.x - this.tapStart.x;
+        this.ty += cur.y - this.tapStart.y;
+        this.tapStart = null;
+        this.render();
+      }
     } else if (this.mode === 'pan') {
       this.tx += cur.x - prev.x;
       this.ty += cur.y - prev.y;
@@ -279,6 +370,14 @@ export class Painter {
     if (this.mode === 'stroke' && this.stroke?.pointerId === e.pointerId) {
       if (e.type === 'pointercancel') this.stroke = null;
       else this.commitStroke();
+    }
+    if (this.mode === 'tap' && this.tapStart?.pointerId === e.pointerId) {
+      const yer = this.tapStart;
+      this.tapStart = null;
+      if (e.type !== 'pointercancel') {
+        const region = this.bolgeAt(yer);
+        if (region !== null) this.doldur(region);
+      }
     }
     if (this.pointers.size === 0) {
       this.mode = 'idle';

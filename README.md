@@ -14,7 +14,8 @@ Galerideki bir fotoğrafı numaralı boyama şablonuna çeviren ve boyamayı da 
 ## Ne yapar?
 
 - **Şablon çıkarır:** Fotoğrafı 16, 24 ya da 32 renge indirir, aynı renkteki alanları bölgelere ayırır, sınırları çizer ve her bölgeye renk numarasını yazar.
-- **Taşırmadan boyatır:** Fırça darbesi başladığı bölgenin dışına çıkamaz. Fırça ne kadar kalın olursa olsun boya kenara taşmaz.
+- **İki araç:** *Dokun* ile bölgeye dokununca tamamı doğru renkle dolar (yanlış renkte dolmaz, hangi numara olduğunu söyler). *Fırça* ile taşırmadan elle boyanır: darbe başladığı bölgenin dışına çıkamaz. Apple Pencil her zaman fırça gibi boyar.
+- **Oyun:** Üstte yüzde kaç bittiği, kartelada her rengin ilerleme halkası ve kalan bölge sayısı. Bir renk bitince ✓ ve sıradaki renge geçilir; bölgenin %90'ı doğru renkle boyanınca bitmiş sayılır. Resim bitince tebrik.
 - **iPad'e uygundur:** Apple Pencil ile boyanır, iki parmakla yakınlaştırılır ve kaydırılır. Kalem kullanıldıktan sonra parmak sadece kaydırma yapar, böylece avuç içi yanlışlıkla boya bırakmaz.
 - **Galerim:** Bütün resimlerin kart kart durur; her kartta resmin o anki hali görünür. Adı değiştirilebilir, silinebilir.
 - **Kaldığın yerden devam eder:** Boyama otomatik kaydedilir; sayfayı kapatıp açınca devam edilir.

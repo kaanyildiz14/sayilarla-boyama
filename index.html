@@ -62,7 +62,15 @@
     <section id="paint" class="screen" hidden>
       <header class="toolbar">
         <button id="back" title="Galerim">‹ Galerim</button>
+        <div class="progress" aria-label="İlerleme">
+          <div class="progress-bar"><span id="progress-fill"></span></div>
+          <span id="progress-text">%0</span>
+        </div>
         <button id="undo" disabled>↶ Geri al</button>
+        <div class="segmented" role="group" aria-label="Araç">
+          <button id="tool-tap" aria-pressed="true" title="Bölgeye dokun, tamamı dolsun">👆 Dokun</button>
+          <button id="tool-brush" aria-pressed="false" title="Fırçayla boya (taşmaz)">✏️ Fırça</button>
+        </div>
         <label class="brush">Fırça <input type="range" id="brush" min="3" max="80" value="18" /></label>
         <label class="check"><input type="checkbox" id="nums" checked /> Numaralar</label>
         <button id="fit">Sığdır</button>
@@ -71,7 +79,7 @@
         <button id="dl-template">Şablonu indir</button>
         <button id="dl-final" class="primary">Resmi kaydet</button>
       </header>
-      <div id="stage"><canvas id="canvas"></canvas></div>
+      <div id="stage"><canvas id="canvas"></canvas><div id="toast" class="toast" role="status" aria-live="polite" hidden></div></div>
       <footer id="palette" aria-label="Renkler"></footer>
     </section>
 

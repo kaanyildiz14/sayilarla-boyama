@@ -78,7 +78,9 @@ function kart(c: Calisma): HTMLLIElement {
   baslik.textContent = c.title;
   const zaman = document.createElement('div');
   zaman.className = 'work-date';
-  zaman.textContent = sonDuzenleme(c.updatedAt);
+  const durum = c.completedAt ? '✓ Bitti' : `%${Math.floor((c.progress ?? 0) * 100)}`;
+  zaman.textContent = `${sonDuzenleme(c.updatedAt)} · ${durum}`;
+  if (c.completedAt) li.classList.add('bitti');
   metin.append(baslik, zaman);
 
   const menu = document.createElement('button');
@@ -115,6 +117,12 @@ function kart(c: Calisma): HTMLLIElement {
     await kartlariCiz();
   });
 
-  li.append(ac, bilgi, islemler);
+  const cubuk = document.createElement('div');
+  cubuk.className = 'work-progress';
+  const dolu = document.createElement('span');
+  dolu.style.width = `${(c.progress ?? 0) * 100}%`;
+  cubuk.appendChild(dolu);
+
+  li.append(ac, cubuk, bilgi, islemler);
   return li;
 }
