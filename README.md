@@ -7,9 +7,9 @@ Galerideki bir fotoğrafı numaralı boyama şablonuna çeviren ve boyamayı da 
 
 **Uygulamayı aç:** https://kaanyildiz14.github.io/sayilarla-boyama/
 
-| Galerim | Fotoğraf seç | Boya |
+| Oyun (tablet) | Tamamlandı | Telefon |
 |---|---|---|
-| ![Galerim](docs/ekran-galeri.jpg) | ![Yeni resim ekranı](docs/ekran-baslangic.jpg) | ![Boyama ekranı](docs/ekran-boyama.jpg) |
+| ![Oyun ekranı](docs/ekran-oyun.jpg) | ![Tamamlandı ekranı](docs/ekran-tamamlandi.jpg) | ![Telefonda menü](docs/ekran-telefon.jpg) |
 
 ## Ne yapar?
 
@@ -20,6 +20,7 @@ Galerideki bir fotoğrafı numaralı boyama şablonuna çeviren ve boyamayı da 
 - **Ödül anı:** Resim bitince kutlama ekranı açılır ve resmin baştan sona nasıl boyandığı hızlandırılmış olarak oynatılır. Bitmiş resimler *▶ İzle* ile sonradan da izlenebilir.
 - **iPad'e uygundur:** Apple Pencil ile boyanır, iki parmakla yakınlaştırılır ve kaydırılır. Kalem kullanıldıktan sonra parmak sadece kaydırma yapar, böylece avuç içi yanlışlıkla boya bırakmaz.
 - **Galerim:** Bütün resimlerin kart kart durur; her kartta resmin o anki hali görünür. Adı değiştirilebilir, silinebilir.
+- **Telefon ve tablet:** Dar ekranda tek satır araç çubuğu ve menü; sol el modu. Ana ekrana eklenince uygulama gibi açılır ve **internet olmadan çalışır**.
 - **Kaldığın yerden devam eder:** Boyama otomatik kaydedilir; sayfayı kapatıp açınca devam edilir.
 - **Kaydeder:** Bitmiş resim ya da boş şablon (altında renk kartelasıyla) PNG olarak galeriye kaydedilir.
 
@@ -34,7 +35,7 @@ Fotoğraf hiçbir sunucuya gönderilmez. Bütün işlem tarayıcının içinde y
 5. Her bölgede sınıra en uzak nokta (uzaklık dönüşümü ile) bulunur ve numara oraya yazılır.
 6. Boyarken fırça izi ayrı bir tuvale çizilir ve bölgenin maskesiyle kesilir (`destination-in`).
 
-Ayrıntılar: [docs/mimari.md](docs/mimari.md) · Oyuna dönüşüm planı: [docs/oyun-plani.md](docs/oyun-plani.md)
+Ayrıntılar: [docs/mimari.md](docs/mimari.md) · Sürümler: [CHANGELOG.md](CHANGELOG.md) · Oyuna dönüşüm planı: [docs/oyun-plani.md](docs/oyun-plani.md)
 
 ## Geliştirme
 

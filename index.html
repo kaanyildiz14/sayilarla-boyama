@@ -61,26 +61,32 @@
 
     <section id="paint" class="screen" hidden>
       <header class="toolbar">
-        <button id="back" title="Galerim">‹ Galerim</button>
+        <button id="back" title="Galerim" aria-label="Galerim"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg><span class="etiket"> Galerim</span></button>
         <div class="progress" aria-label="İlerleme">
           <div class="progress-bar"><span id="progress-fill"></span></div>
           <span id="progress-text">%0</span>
         </div>
-        <button id="undo" disabled><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg> Geri al</button>
+        <button id="undo" disabled aria-label="Geri al"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg><span class="etiket"> Geri al</span></button>
         <div class="segmented" role="group" aria-label="Araç">
           <button id="tool-tap" aria-pressed="true" title="Bölgeye dokun, tamamı dolsun"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/></svg> Dokun</button>
           <button id="tool-brush" aria-pressed="false" title="Fırçayla boya (taşmaz)"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1L19 8l-3-3L5 16l-1 4z"/><path d="M14 7l3 3"/></svg> Fırça</button>
         </div>
-        <label class="brush">Fırça <input type="range" id="brush" min="3" max="80" value="18" /></label>
-        <label class="check"><input type="checkbox" id="nums" checked /> Numaralar</label>
-        <button id="fit">Sığdır</button>
-        <span class="spacer"></span>
-        <span id="saved" class="saved"></span>
-        <button id="replay-open" hidden><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> İzle</button>
-        <button id="dl-template">Şablonu indir</button>
-        <button id="dl-final" class="primary">Resmi kaydet</button>
+        <button id="menu-btn" aria-label="Menü" aria-haspopup="true" aria-expanded="false" aria-controls="menu"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/></svg></button>
       </header>
-      <div id="stage"><canvas id="canvas"></canvas><div class="stage-tools"><button id="finder" title="Bu renkte kalan en yakın bölgeyi bul" aria-label="Bul"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button><button id="wand" title="Ekranda görünen bu renkteki bütün bölgeleri boya" aria-label="Sihirli değnek"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 15 9"/><path d="M17 3v4M15 5h4M20 11v3M18.5 12.5h3M9 3v2M8 4h2"/></svg></button></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div></div>
+      <div id="menu" class="menu" hidden>
+        <button id="replay-open" hidden><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Boyanışını izle</button>
+        <button id="dl-final" class="primary">Resmi kaydet</button>
+        <button id="dl-template">Şablonu indir</button>
+        <button id="fit">Ekrana sığdır</button>
+        <label class="check"><input type="checkbox" id="nums" checked /> Numaraları göster</label>
+        <hr />
+        <div class="menu-baslik">Ayarlar</div>
+        <label class="check"><input type="checkbox" id="set-oto" /> Renk bitince sıradakine geç</label>
+        <label class="check"><input type="checkbox" id="set-sol" /> Sol el (düğmeler solda)</label>
+        <label class="check"><input type="checkbox" id="set-titresim" /> Titreşim</label>
+        <span id="saved" class="saved"></span>
+      </div>
+      <div id="stage"><canvas id="canvas"></canvas><label id="brush-bar" class="brush-bar" hidden>Fırça <input type="range" id="brush" min="3" max="80" value="18" /></label><div class="stage-tools"><button id="finder" title="Bu renkte kalan en yakın bölgeyi bul" aria-label="Bul"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button><button id="wand" title="Ekranda görünen bu renkteki bütün bölgeleri boya" aria-label="Sihirli değnek"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 15 9"/><path d="M17 3v4M15 5h4M20 11v3M18.5 12.5h3M9 3v2M8 4h2"/></svg></button></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div></div>
       <footer id="palette" aria-label="Renkler"></footer>
 
       <div id="done" class="done" role="dialog" aria-modal="true" aria-labelledby="done-title" hidden>

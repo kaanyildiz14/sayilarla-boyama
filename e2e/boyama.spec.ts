@@ -218,7 +218,9 @@ test('oyun: yanlış renk, dokun-doldur, renk tamam, resim tamam, geri al', asyn
 
   // bitmiş resim sonradan da izlenebilir; kayıtlı hamlelerle resim yeniden oluşur
   await expect(page.locator('#done')).toBeHidden();
+  await page.locator('#menu-btn').click();
   await page.locator('#replay-open').click();
+  await expect(page.locator('#menu')).toBeHidden(); // düğmeye basınca menü kapanır
   await expect(page.locator('#done')).toHaveAttribute('data-durum', 'bitti', { timeout: 15_000 });
   const renkler = await page.locator('#replay').evaluate((c: HTMLCanvasElement) => {
     const ctx = c.getContext('2d')!;
@@ -297,4 +299,51 @@ test('yardımcılar: sihirli değnek, bulucu ve geri al', async ({ page }) => {
   await expect(page.locator('#toast')).toHaveText('1 numarada kalan bölge yok');
   await page.locator('#wand').click();
   await expect(page.locator('#toast')).toHaveText('1 numarada kalan bölge yok');
+});
+
+test('menü ve ayarlar: tek satır araç çubuğu, fırça çubuğu, otomatik renk, sol el', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#empty-new').click();
+  await page.locator('#file').setInputFiles(IKI_RENK);
+  await page.locator('label:has(input[value=sade])').click();
+  await page.locator('#make').click();
+  await expect(page.locator('#paint')).toBeVisible({ timeout: 30_000 });
+
+  // araç çubuğu tek satır: bütün düğmeler aynı hizada ve ekranın içinde
+  const kutular = await page.locator('.toolbar > *').evaluateAll((els) =>
+    els.map((e) => e.getBoundingClientRect()).filter((r) => r.width > 0).map((r) => ({ ust: Math.round(r.top + r.height / 2), sag: r.right })),
+  );
+  const ortalar = kutular.map((k) => k.ust);
+  expect(Math.max(...ortalar) - Math.min(...ortalar)).toBeLessThan(6);
+  expect(Math.max(...kutular.map((k) => k.sag))).toBeLessThanOrEqual(page.viewportSize()!.width);
+
+  // fırça çubuğu yalnızca fırça aracında
+  await expect(page.locator('#brush-bar')).toBeHidden();
+  await page.locator('#tool-brush').click();
+  await expect(page.locator('#brush-bar')).toBeVisible();
+  await page.locator('#tool-tap').click();
+
+  // menü: aç, dışarı dokununca kapanır
+  await page.locator('#menu-btn').click();
+  await expect(page.locator('#menu')).toBeVisible();
+  await page.locator('#palette').click({ position: { x: 5, y: 5 } });
+  await expect(page.locator('#menu')).toBeHidden();
+
+  // "renk bitince sıradakine geç" kapalıyken seçili renk değişmez
+  await page.locator('#menu-btn').click();
+  await expect(page.locator('#set-oto')).toBeChecked();
+  await page.locator('#set-oto').uncheck();
+  await page.locator('#set-sol').check();
+  await expect(page.locator('body')).toHaveClass(/sol-el/);
+  await page.keyboard.press('Escape');
+  await page.locator('#wand').click();
+  await expect(page.locator('.swatch').nth(0)).toHaveClass(/tamam/);
+  await expect(page.locator('.swatch').nth(0)).toHaveClass(/selected/);
+
+  // ayarlar yenilemeden sonra da geçerli
+  await page.reload();
+  await expect(page.locator('#paint')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/sol-el/);
+  await page.locator('#menu-btn').click();
+  await expect(page.locator('#set-oto')).not.toBeChecked();
 });

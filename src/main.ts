@@ -6,6 +6,7 @@ import { yeniResimGoster, yeniResimKur } from './ekranlar/baslangic';
 import { aktifCalismaId, bekleyenKaydiYaz, boyamaAraclariniKur, boyamayiAc } from './ekranlar/boyama';
 import { bekle } from './ekranlar/ekran';
 import { galeriKur, galeriyiGoster } from './ekranlar/galeri';
+import { cevrimdisiKur } from './platform/cevrimdisi';
 import { ayniRota, rotaAdresi, rotayiCoz, type Rota } from './yonlendirme';
 
 const rota = new Durum<Rota>(rotayiCoz(location.hash));
@@ -44,6 +45,7 @@ async function ciz(r: Rota): Promise<void> {
   await boyamayiAc(acik);
 }
 
+cevrimdisiKur();
 galeriKur({ ac: (id) => git({ ad: 'boya', id }), yeni: () => git({ ad: 'yeni' }) });
 yeniResimKur({ calismayiAc: (id) => git({ ad: 'boya', id }) });
 boyamaAraclariniKur(() => git({ ad: 'galeri' }));

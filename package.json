@@ -1,7 +1,7 @@
 {
   "name": "sayilarla-boyama",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "description": "Fotoğraftan sayılarla boyama şablonu çıkaran ve iPad'de taşmadan boyatan web uygulaması",
   "scripts": {

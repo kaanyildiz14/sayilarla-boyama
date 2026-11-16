@@ -26,7 +26,9 @@ Galerim ──(＋ Yeni resim)──▶ Fotoğraf + detay ──▶ Hazırlanıy
 | `src/tekrar/hamleler.ts` | Hamle kaydının biçimi, tekrar süresi ve zamanlaması (saf TS) |
 | `src/tekrar/oynat.ts` | Hamle kaydını boş tuvalde baştan oynatan animasyon |
 | `src/depo/` | IndexedDB: bağlantı, sürüm göçü (`db.ts`), çalışmalar (`calismalar.ts`) |
-| `src/platform/` | Web ile mağaza uygulaması arasında farklı çalışan işler (kaydet/paylaş) |
+| `src/platform/` | Web ile mağaza uygulaması arasında farklı çalışan işler: kaydet/paylaş, service worker kaydı |
+| `src/ayarlar.ts` | Kullanıcı ayarları (localStorage): sol el, titreşim, otomatik renk |
+| `vite.config.ts` | Derlemede `sw.js` üreten eklenti (çevrimdışı önbellek) |
 
 ## Kayıt (IndexedDB, sürüm 2)
 
@@ -81,6 +83,14 @@ Her boyama işi bir hamle olarak kaydedilir: doldurma (`f`: bölge, renk), değn
 | Sade | 16 | 1400 px | 9 px |
 | Orta | 24 | 600 px | 7 px |
 | Detaylı | 32 | 250 px | 5 px |
+
+## Çevrimdışı çalışma
+
+Derleme sonunda `vite.config.ts` içindeki küçük eklenti, oluşan bütün dosyaların listesini `sw.js` içine yazar. Service worker kurulurken hepsini önbelleğe alır (şablon üreten işçi dosyası dahil), sonra istekleri önce önbellekten karşılar. Her derleme yeni bir önbellek sürümü üretir; etkinleşince eski sürümün önbelleği silinir.
+
+- Sayfa istekleri (adres çubuğu) her zaman önbellekteki ana sayfayla karşılanır; `#/boya/<id>` gibi adresler internetsiz de açılır.
+- Önbellek eşleşmesinde `ignoreVary` kullanılır: sunucunun `Vary` başlığı yüzünden Chrome önbellekteki dosyayı bulamıyordu.
+- Geliştirme sunucusunda service worker kaydedilmez.
 
 ## Gerçek iOS Safari'de deneme (iPad simülatörü)
 
