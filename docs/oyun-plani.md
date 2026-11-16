@@ -128,7 +128,7 @@ Bir cümleyle: *"Kendi fotoğraflarını, taşırmadan, reklamsız boya."*
 | 8 | **Telefon arayüzü** (dar ekran, alttan kayan kartela) | M | |
 | 9 | **Çevrimdışı çalışma** (PWA, service worker) | M | Mağaza aşaması için de gerekli |
 | 10 | **Numara gösterimi yakınlaşmaya göre** (uzaktayken gizle) | S | Uzaktan bakınca resim temiz görünür |
-| 11 | **Sihirli değnek:** seçili renkteki komşu bölgeleri doldurur | S | |
+| 11 | **Sihirli değnek:** seçili rengin **ekranda görünen** bütün boş bölgelerini doldurur (tek geri al ile geri gelir) | S | Piksel oyunlarındaki "komşu aynı numaralı kareler" bizde yok: aynı renkteki bitişik alanlar zaten tek bölge. Bu yüzden değnek görünen alana göre çalışır |
 | 12 | **Renk tamamlanınca otomatik sonraki renk** (ayarla kapatılabilir) | S | |
 | 13 | Dokunsal geri bildirim (titreşim) ve hafif sesler | C | Web'de kısıtlı, mağazada tam |
 | 14 | Ayarlar: sol el modu, ses, titreşim, numara boyutu | S | |
@@ -177,7 +177,7 @@ Reklam, abonelik, uygulama içi satın alma, hesap/giriş, bulut senkronu, sosya
 | **Renk tamamlandı** | O renkteki bütün bölgeler bitince kartelada ✓ |
 | **Resim tamamlandı** | Bütün bölgeler bitince kutlama + tekrar animasyonu, galeride "bitti" rozeti |
 | **İpucu / bulucu** | Sınırsız ve ücretsiz. Para yok, reklam yok |
-| **Sihirli değnek** | Sınırsız; seçili renkteki, dokunulan bölgeye komşu aynı renk bölgeleri doldurur |
+| **Sihirli değnek** | Sınırsız; seçili rengin ekranda görünen bütün boş bölgelerini doldurur. Yakınlaştırarak etki alanı küçültülür |
 
 ---
 

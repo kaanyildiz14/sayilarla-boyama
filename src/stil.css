@@ -138,3 +138,9 @@ h1 { margin: 0; font-size: 26px; font-weight: 600; }
 .work-progress { height: 4px; background: var(--line); }
 .work-progress span { display: block; height: 100%; background: var(--accent); }
 .work.bitti .work-progress span { background: #3b6d11; }
+
+.stage-tools { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
+.stage-tools button {
+  width: 52px; height: 52px; border-radius: 50%; font-size: 22px; padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); display: flex; align-items: center; justify-content: center;
+}

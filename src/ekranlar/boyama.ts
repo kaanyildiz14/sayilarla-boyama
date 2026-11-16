@@ -6,6 +6,7 @@ import { boyaKaydet, kapakKaydet, type AcikCalisma } from '../depo/calismalar';
 import type { Template } from '../islem/sablon';
 import { Ilerleme, type Degisim } from '../oyun/ilerleme';
 import { bolgeKapsamasi, tumKapsamalar } from '../oyun/kapsama';
+import { enYakinBolge, gorunenBolgeler, kalanBolgeler } from '../oyun/yardimcilar';
 import { saveImage } from '../platform';
 import { $, ekraniGoster } from './ekran';
 
@@ -56,7 +57,8 @@ export async function boyamayiAc(acik: AcikCalisma): Promise<void> {
   aktifId = calisma.id;
   aktifTemplate = t;
   aktifCizgiler = lines;
-  painter = new Painter(canvas, t, paint, lines, numbers);
+  painter = new Painter(canvas, t, paint, lines);
+  painter.bitti = ilerleme.bitti;
   // v1.0'dan taşınan çalışmaların henüz kapağı yok
   if (!calisma.thumbnail) {
     bekleyenKapak = kapakOlustur()
@@ -120,7 +122,10 @@ function bolgeDegisti(t: Template, region: number): void {
   const reg = t.regions[region];
   const k = bolgeKapsamasi(t.regionMap, t.width, region, reg, painter.bolgePikselleri(region).data, t.palette[reg.color]);
   const d = ilerleme.guncelle(new Map([[region, k]]));
-  if (d.degisenBolgeler.length) olaylariIsle(d);
+  if (d.degisenBolgeler.length) {
+    for (const r of d.degisenBolgeler) painter.vurguBolge(r);
+    olaylariIsle(d);
+  }
 }
 
 function olaylariIsle(d: Degisim): void {
@@ -205,6 +210,36 @@ function renkSec(i: number): void {
   const kartlar = $('palette').querySelectorAll<HTMLButtonElement>('.swatch');
   kartlar.forEach((s, j) => s.classList.toggle('selected', j === i));
   kartlar[i]?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  painter.vurguAyarla(i);
+}
+
+// ---- yardımcılar ----
+
+function bul(): void {
+  if (!painter || !ilerleme || !aktifTemplate) return;
+  const adaylar = kalanBolgeler(aktifTemplate.regions, ilerleme.bitti, seciliRenk);
+  if (!adaylar.length) {
+    bildir(`${seciliRenk + 1} numarada kalan bölge yok`);
+    return;
+  }
+  const g = painter.gorus();
+  const r = enYakinBolge(aktifTemplate.regions, adaylar, (g.x0 + g.x1) / 2, (g.y0 + g.y1) / 2)!;
+  painter.odakla(r);
+  bildir(`${seciliRenk + 1} numara: ${adaylar.length} bölge kaldı`);
+}
+
+function degnek(): void {
+  if (!painter || !ilerleme || !aktifTemplate) return;
+  const adaylar = kalanBolgeler(aktifTemplate.regions, ilerleme.bitti, seciliRenk);
+  const gorunen = gorunenBolgeler(aktifTemplate.regions, adaylar, painter.gorus());
+  if (!gorunen.length) {
+    bildir(adaylar.length ? `Ekranda boş ${seciliRenk + 1} yok. 🔍 ile bul` : `${seciliRenk + 1} numarada kalan bölge yok`);
+    return;
+  }
+  const renk = seciliRenk;
+  painter.toplucaDoldur(gorunen);
+  // renk o an bittiyse "tamam" bildirimi zaten çıktı; üstüne yazma
+  if (!ilerleme.renkTamamMi(renk)) bildir(`🪄 ${gorunen.length} bölge boyandı`);
 }
 
 function kayitliArac(): Arac {
@@ -239,6 +274,8 @@ export function boyamaAraclariniKur(geri: () => void): void {
     geriAl.disabled = !painter?.canUndo;
   });
   $('fit').addEventListener('click', () => painter?.fit());
+  $('finder').addEventListener('click', bul);
+  $('wand').addEventListener('click', degnek);
   $('tool-tap').addEventListener('click', () => aracSec('dokun'));
   $('tool-brush').addEventListener('click', () => aracSec('firca'));
   $('stage').addEventListener('animationend', () => $('stage').classList.remove('yanlis'));

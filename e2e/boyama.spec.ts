@@ -243,3 +243,35 @@ test('ekran boyutu değişince (cihaz yan çevrilince) resim ekranda kalır', as
   await page.waitForTimeout(300);
   expect(sahneMi(await ortadakiRenk())).toBe(false);
 });
+
+test('yardımcılar: sihirli değnek, bulucu ve geri al', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#empty-new').click();
+  await page.locator('#file').setInputFiles(IKI_RENK);
+  await page.locator('label:has(input[value=sade])').click();
+  await page.locator('#make').click();
+  await expect(page.locator('#paint')).toBeVisible({ timeout: 30_000 });
+  await expect(page.locator('.swatch')).toHaveCount(2);
+
+  // bulucu: kalan bölgeyi söyler
+  await page.locator('#finder').click();
+  await expect(page.locator('#toast')).toHaveText('1 numara: 1 bölge kaldı');
+
+  // değnek: ekranda görünen bütün 1'leri boyar; renk bitince sıradakine geçer
+  await page.locator('#wand').click();
+  await expect(page.locator('#progress-text')).toHaveText('%50');
+  await expect(page.locator('.swatch').nth(1)).toHaveClass(/selected/);
+  await page.locator('#wand').click();
+  await expect(page.locator('#progress-text')).toHaveText('✓');
+
+  // değnek tek "geri al" ile geri gelir
+  await page.locator('#undo').click();
+  await expect(page.locator('#progress-text')).toHaveText('%50');
+
+  // bitmiş renkte bulucu "kalan yok" der
+  await page.locator('.swatch').nth(0).click();
+  await page.locator('#finder').click();
+  await expect(page.locator('#toast')).toHaveText('1 numarada kalan bölge yok');
+  await page.locator('#wand').click();
+  await expect(page.locator('#toast')).toHaveText('1 numarada kalan bölge yok');
+});
