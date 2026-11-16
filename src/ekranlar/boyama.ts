@@ -7,6 +7,7 @@ import type { Template } from '../islem/sablon';
 import { Ilerleme, type Degisim } from '../oyun/ilerleme';
 import { bolgeKapsamasi, tumKapsamalar } from '../oyun/kapsama';
 import { enYakinBolge, gorunenBolgeler, kalanBolgeler } from '../oyun/yardimcilar';
+import { ayarDegistir, ayarlar, titret } from '../ayarlar';
 import { saveImage } from '../platform';
 import { bosKayit, type HamleKaydi } from '../tekrar/hamleler';
 import { tekrarOynat, type Tekrar } from '../tekrar/oynat';
@@ -37,6 +38,7 @@ export async function boyamayiAc(acik: AcikCalisma): Promise<void> {
   const { calisma, template: t, paint: paintBlob } = acik;
   hamleler = acik.hamleler;
   tamamlandiKapat();
+  menuAc(false);
   const paint = makeCanvas(t.width, t.height);
   // ilk getContext ayarları belirler; boya sık okunacağı için willReadFrequently
   const paintCtx = paint.getContext('2d', { willReadFrequently: true })!;
@@ -147,8 +149,8 @@ function olaylariIsle(d: Degisim): void {
     const renk = d.bitenRenkler[0];
     const sonraki = ilerleme!.sonrakiRenk(renk);
     bildir(`${renk + 1} numara tamam ✓`);
-    // bitmiş rengi boyuyorsak sıradakine geç
-    if (renk === seciliRenk && sonraki !== null) renkSec(sonraki);
+    // bitmiş rengi boyuyorsak sıradakine geç (ayarla kapatılabilir)
+    if (ayarlar().otoRenk && renk === seciliRenk && sonraki !== null) renkSec(sonraki);
   }
 }
 
@@ -157,7 +159,7 @@ function yanlisRenk(t: Template, region: number): void {
   stage.classList.remove('yanlis');
   void stage.offsetWidth; // animasyonu yeniden başlat
   stage.classList.add('yanlis');
-  navigator.vibrate?.(40);
+  titret(40);
   bildir(`Bu bölge ${t.regions[region].color + 1} numara`);
 }
 
@@ -198,7 +200,7 @@ function tamamlandiGoster(kutlama: boolean): void {
   delete $('done').dataset.durum;
   $('done-text').textContent = `${ilerleme.toplam} bölge, ${aktifTemplate.palette.length} renk. Nasıl boyadığını izle:`;
   if (kutlama) konfeti();
-  navigator.vibrate?.([60, 40, 60]);
+  titret([60, 40, 60]);
   tekrariBaslat();
   $('replay-again').focus();
 }
@@ -242,6 +244,43 @@ function konfeti(): void {
       return s;
     }),
   );
+}
+
+// ---- menü ve ayarlar ----
+
+function menuAc(acik: boolean): void {
+  $('menu').hidden = !acik;
+  $('menu-btn').setAttribute('aria-expanded', String(acik));
+}
+
+function ayarlariUygula(): void {
+  const a = ayarlar();
+  document.body.classList.toggle('sol-el', a.solEl);
+  $<HTMLInputElement>('set-sol').checked = a.solEl;
+  $<HTMLInputElement>('set-titresim').checked = a.titresim;
+  $<HTMLInputElement>('set-oto').checked = a.otoRenk;
+}
+
+function menuyuKur(): void {
+  $('menu-btn').addEventListener('click', () => menuAc($('menu').hidden));
+  // menüdeki bir düğmeye basınca menü kapanır (onay kutuları açık bırakır)
+  $('menu').addEventListener('click', (e) => {
+    if ((e.target as Element).closest('button')) menuAc(false);
+  });
+  // menünün dışına dokununca kapanır
+  document.addEventListener('pointerdown', (e) => {
+    const hedef = e.target as Element;
+    if (!$('menu').hidden && !hedef.closest('#menu') && !hedef.closest('#menu-btn')) menuAc(false);
+  });
+  const bagla = (id: string, ad: 'solEl' | 'titresim' | 'otoRenk') =>
+    $<HTMLInputElement>(id).addEventListener('change', (e) => {
+      ayarDegistir(ad, (e.target as HTMLInputElement).checked);
+      ayarlariUygula();
+    });
+  bagla('set-sol', 'solEl');
+  bagla('set-titresim', 'titresim');
+  bagla('set-oto', 'otoRenk');
+  ayarlariUygula();
 }
 
 // ---- kartela ve araçlar ----
@@ -326,6 +365,7 @@ function aracSec(a: Arac): void {
 
 function aracDugmeleriniGuncelle(): void {
   const a = painter?.arac ?? 'dokun';
+  $('brush-bar').hidden = a !== 'firca'; // fırça boyutu yalnızca fırçada gerekir
   $('tool-tap').setAttribute('aria-pressed', String(a === 'dokun'));
   $('tool-brush').setAttribute('aria-pressed', String(a === 'firca'));
 }
@@ -338,6 +378,7 @@ export function boyamaAraclariniKur(geri: () => void): void {
     geriAl.disabled = !painter?.canUndo;
   });
   $('fit').addEventListener('click', () => painter?.fit());
+  menuyuKur();
   $('replay-open').addEventListener('click', () => tamamlandiGoster(false));
   $('replay-again').addEventListener('click', tekrariBaslat);
   $('done-close').addEventListener('click', tamamlandiKapat);
@@ -362,6 +403,7 @@ export function boyamaAraclariniKur(geri: () => void): void {
   $('back').addEventListener('click', geri);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && !$('done').hidden) tamamlandiKapat();
+    if (e.key === 'Escape') menuAc(false);
     if ((e.metaKey || e.ctrlKey) && e.key === 'z' && painter && !$('paint').hidden && $('done').hidden) {
       e.preventDefault();
       geriAl.click();

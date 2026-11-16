@@ -39,6 +39,6 @@ test('düğmelerde emoji yok, simgeler SVG', async ({ page }) => {
   await page.goto('/');
   const metin = await page.locator('button').allInnerTexts();
   for (const t of metin) expect(t).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2190}-\u{21FF}\u{25A0}-\u{25FF}\u{FF00}-\u{FFEF}]/u);
-  for (const id of ['undo', 'tool-tap', 'tool-brush', 'finder', 'wand', 'replay-open', 'replay-again', 'new'])
+  for (const id of ['undo', 'tool-tap', 'tool-brush', 'finder', 'wand', 'replay-open', 'replay-again', 'new', 'menu-btn', 'back'])
     await expect(page.locator(`#${id} svg.ikon`)).toHaveCount(1);
 });

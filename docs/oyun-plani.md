@@ -1,6 +1,6 @@
 # Sayılarla Boyama → Oyun: Plan ve Geliştirme Hattı
 
-> Hazırlanma: 2026-11-16 · Durum: taslak, Kaan'ın onayını bekliyor
+> Hazırlanma: 2026-11-16 · Durum (2026-11-17): **A1–A6 tamamlandı, v2.0.0**. Sırada A7 (paylaşma)
 > Karar: önce ücretsiz web oyunu (PWA), sonra aynı kodla App Store ve Google Play (Capacitor).
 
 ## İçindekiler

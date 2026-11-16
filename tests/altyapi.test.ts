@@ -50,3 +50,15 @@ describe('galeri tarihi', async () => {
     expect(sonDuzenleme(new Date(2026, 10, 3, 12, 0).getTime(), simdi)).toBe('3 Kasım');
   });
 });
+
+describe('ayarlar', async () => {
+  const { ayarlariCoz, VARSAYILAN } = await import('../src/ayarlar');
+  it('boş ya da bozuk kayıtta varsayılanları verir', () => {
+    expect(ayarlariCoz(null)).toEqual(VARSAYILAN);
+    expect(ayarlariCoz('{bozuk')).toEqual(VARSAYILAN);
+    expect(ayarlariCoz('null')).toEqual(VARSAYILAN);
+  });
+  it('geçerli alanları alır, yanlış türdekileri ve bilinmeyenleri yok sayar', () => {
+    expect(ayarlariCoz('{"solEl":true,"titresim":"evet","baska":1}')).toEqual({ ...VARSAYILAN, solEl: true });
+  });
+});
