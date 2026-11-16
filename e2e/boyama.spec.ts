@@ -14,8 +14,12 @@ async function pikseller(page: Page, noktalar: [number, number][]): Promise<numb
 
 const beyazMi = (p: number[]) => p[0] > 245 && p[1] > 245 && p[2] > 245;
 
-async function sablonOlustur(page: Page) {
-  await page.goto('/');
+/** nasil: 'git' = baştan aç, 'bos' = boş galeriden, 'yeni' = galerideki ＋ düğmesiyle */
+async function sablonOlustur(page: Page, nasil: 'git' | 'bos' | 'yeni' = 'git') {
+  if (nasil === 'git') await page.goto('/');
+  if (nasil === 'yeni') await page.locator('#new').click();
+  else await page.locator('#empty-new').click();
+  await expect(page.locator('#start')).toBeVisible();
   await page.locator('#file').setInputFiles(ORNEK);
   await page.locator('label:has(input[value=sade])').click();
   await page.locator('#make').click();
@@ -53,21 +57,55 @@ test('fotoğraftan şablon oluşur, boyanır ve yenileyince boya yerinde kalır'
   expect(yenilenince.filter((p) => !beyazMi(p)).length).toBeGreaterThanOrEqual(3);
 });
 
-test('başlangıca dönünce "kaldığın yerden devam et" çalışır', async ({ page }) => {
-  await sablonOlustur(page);
-  const adres = page.url();
+test('galeri: boş halden ilk resme, birden fazla resim, yeniden adlandırma ve silme', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#gallery')).toBeVisible();
+  await expect(page.locator('#empty')).toBeVisible();
+
+  await sablonOlustur(page, 'bos');
+  const ilkAdres = page.url();
   await page.locator('#back').click();
-  await expect(page.locator('#start')).toBeVisible();
   await expect(page).toHaveURL(/#\/$/);
-  await page.locator('#resume').click();
+  await expect(page.locator('.work')).toHaveCount(1);
+  await expect(page.locator('.work img')).toHaveCount(1); // kapak var
+
+  await sablonOlustur(page, 'yeni');
+  await page.locator('#back').click();
+  await expect(page.locator('.work')).toHaveCount(2);
+
+  // en son açılan başta; ilk resme dokununca aynı çalışma açılır
+  await page.locator('.work').nth(1).locator('.work-open').click();
   await expect(page.locator('#paint')).toBeVisible();
-  expect(page.url()).toBe(adres);
+  expect(page.url()).toBe(ilkAdres);
+  await page.goBack();
+  await expect(page.locator('#gallery')).toBeVisible();
+
+  // yeniden adlandır
+  const kart = page.locator('.work').first();
+  await kart.locator('.work-menu').click();
+  page.once('dialog', (d) => d.accept('Eşimle düğünde'));
+  await kart.getByRole('button', { name: 'Adını değiştir' }).click();
+  await expect(page.locator('.work-title').first()).toHaveText('Eşimle düğünde');
+
+  // sil (önce vazgeç, sonra onayla)
+  await page.locator('.work').first().locator('.work-menu').click();
+  page.once('dialog', (d) => d.dismiss());
+  await page.locator('.work').first().getByRole('button', { name: 'Sil' }).click();
+  await expect(page.locator('.work')).toHaveCount(2);
+  page.once('dialog', (d) => d.accept());
+  await page.locator('.work').first().getByRole('button', { name: 'Sil' }).click();
+  await expect(page.locator('.work')).toHaveCount(1);
+  await expect(page.locator('.work-title')).not.toHaveText('Eşimle düğünde');
+
+  // yenileyince galeri aynı
+  await page.reload();
+  await expect(page.locator('.work')).toHaveCount(1);
 });
 
-test('olmayan bir çalışmanın adresi başlangıca döner', async ({ page }) => {
+test('olmayan bir çalışmanın adresi galeriye döner', async ({ page }) => {
   await page.goto('/#/boya/olmayan-id');
-  await expect(page.locator('#start')).toBeVisible();
-  await expect(page.locator('#error')).toHaveText('Bu çalışma bulunamadı.');
+  await expect(page.locator('#gallery')).toBeVisible();
+  await expect(page.locator('#gallery-error')).toHaveText('Bu çalışma bulunamadı.');
 });
 
 test('v1.0 kaydı olan kullanıcı boyamasını kaybetmez', async ({ page }) => {
@@ -108,8 +146,12 @@ test('v1.0 kaydı olan kullanıcı boyamasını kaybetmez', async ({ page }) => 
   );
 
   await page.goto('/');
-  await expect(page.locator('#resume')).toBeVisible();
-  await page.locator('#resume').click();
+  await expect(page.locator('.work')).toHaveCount(1);
+  await expect(page.locator('.work-title')).toHaveText('İlk boyamam');
+  await page.locator('.work-open').click();
   await expect(page.locator('#paint')).toBeVisible();
   await expect(page.locator('.swatch')).toHaveCount(2);
+  // açılınca kapak üretilir; galeride görünür
+  await page.locator('#back').click();
+  await expect(page.locator('.work img')).toHaveCount(1);
 });

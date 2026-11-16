@@ -89,6 +89,21 @@ export function finalImage(t: Template, paint: HTMLCanvasElement, lines: HTMLCan
   return c;
 }
 
-export function toBlob(c: HTMLCanvasElement): Promise<Blob> {
-  return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('Resim oluşturulamadı'))), 'image/png'));
+/** Galeri kartı için küçük resim: boya + soluk çizgiler. */
+export function kapakResmi(t: Template, paint: HTMLCanvasElement, lines: HTMLCanvasElement, genislik = 360): HTMLCanvasElement {
+  const c = makeCanvas(genislik, Math.round((genislik * t.height) / t.width));
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, c.width, c.height);
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(paint, 0, 0, c.width, c.height);
+  ctx.globalAlpha = 0.6;
+  ctx.drawImage(lines, 0, 0, c.width, c.height);
+  return c;
+}
+
+export function toBlob(c: HTMLCanvasElement, type = 'image/png', quality?: number): Promise<Blob> {
+  return new Promise((resolve, reject) =>
+    c.toBlob((b) => (b ? resolve(b) : reject(new Error('Resim oluşturulamadı'))), type, quality),
+  );
 }

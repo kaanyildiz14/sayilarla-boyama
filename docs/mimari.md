@@ -3,9 +3,10 @@
 ## Ekran akışı
 
 ```
-Başlangıç ──(fotoğraf + detay)──▶ Hazırlanıyor ──▶ Boyama ──▶ Resmi kaydet
-    ▲                                                  │
-    └────────────── Kaldığın yerden devam ◀────────────┘ (otomatik kayıt)
+Galerim ──(＋ Yeni resim)──▶ Fotoğraf + detay ──▶ Hazırlanıyor ──▶ Boyama ──▶ Resmi kaydet
+   ▲  │                                                            │
+   │  └──────────────────── karta dokun ──────────────────────────▶│
+   └──────────────────────── ‹ Galerim (otomatik kayıt + kapak) ◀──┘
 ```
 
 ## Dosyalar
@@ -13,9 +14,9 @@ Başlangıç ──(fotoğraf + detay)──▶ Hazırlanıyor ──▶ Boyama 
 | Dosya | Görevi |
 |---|---|
 | `src/main.ts` | Giriş: adres (#) değişince doğru ekranı açar |
-| `src/yonlendirme.ts` | `#/` ve `#/boya/<id>` adreslerini çözer / üretir |
+| `src/yonlendirme.ts` | `#/` (Galerim), `#/yeni` ve `#/boya/<id>` adreslerini çözer / üretir |
 | `src/durum.ts` | Küçük durum kabı (değişince abonelere haber verir) |
-| `src/ekranlar/` | Başlangıç ve boyama ekranları, ekran geçişi |
+| `src/ekranlar/` | Galerim (`galeri.ts`), yeni resim (`baslangic.ts`), boyama (`boyama.ts`), ekran geçişi |
 | `src/islem/` | Görüntü işleme (saf TS): şablon, k-means, renk, filtre, bölge; `isci.ts` Web Worker, `calistir.ts` fotoğrafı hazırlayıp işçiyi çalıştırır |
 | `src/boyama/painter.ts` | Boyama tuvali: taşmayan fırça, yakınlaştırma, geri al |
 | `src/boyama/katmanlar.ts` | Çizgi ve numara katmanları, indirilebilir şablon, bitmiş resim |
@@ -26,7 +27,7 @@ Başlangıç ──(fotoğraf + detay)──▶ Hazırlanıyor ──▶ Boyama 
 
 | Depo | Anahtar | İçerik |
 |---|---|---|
-| `works` | id | başlık, tarihler, detay, ilerleme |
+| `works` | id | başlık, tarihler, detay, ilerleme, galeri kapağı (JPEG baytları) |
 | `templates` | çalışma id | şablon |
 | `progress` | çalışma id | boya katmanı (PNG baytları) |
 | `settings` | ad | `sonCalisma` |

@@ -15,13 +15,26 @@
     <link rel="stylesheet" href="./src/stil.css" />
   </head>
   <body>
-    <main id="start" class="screen">
-      <div class="card">
-        <h1>Sayılarla Boyama</h1>
-        <p class="lead">Bir fotoğraf seç, numaralı bir boyama şablonuna çevirelim. Sonra burada, taşırmadan boya.</p>
-        <p class="note">Fotoğraf cihazından çıkmaz; her şey bu tarayıcının içinde yapılır.</p>
+    <main id="gallery" class="screen">
+      <header class="gallery-head">
+        <h1>Galerim</h1>
+        <button id="new" class="primary">＋ Yeni resim</button>
+      </header>
+      <p id="gallery-error" class="error" hidden></p>
+      <div id="empty" class="empty" hidden>
+        <p class="lead">Henüz resmin yok.</p>
+        <p class="note">Bir fotoğraf seç, numaralı boyama şablonuna çevirelim. Fotoğraf cihazından çıkmaz.</p>
+        <button id="empty-new" class="primary">İlk resmini oluştur</button>
+      </div>
+      <ul id="cards" class="cards" aria-label="Resimlerim"></ul>
+    </main>
 
-        <button id="resume" class="secondary" hidden>Kaldığın yerden devam et</button>
+    <main id="start" class="screen" hidden>
+      <div class="card">
+        <a href="#/" class="back-link">‹ Galerim</a>
+        <h1>Yeni resim</h1>
+        <p class="lead">Bir fotoğraf seç, numaralı bir boyama şablonuna çevirelim. Sonra taşırmadan boya.</p>
+        <p class="note">Fotoğraf cihazından çıkmaz; her şey bu tarayıcının içinde yapılır.</p>
 
         <label class="file-btn">
           <input type="file" id="file" accept="image/*" />
@@ -48,7 +61,7 @@
 
     <section id="paint" class="screen" hidden>
       <header class="toolbar">
-        <button id="back" title="Başlangıç ekranı">‹ Fotoğraflar</button>
+        <button id="back" title="Galerim">‹ Galerim</button>
         <button id="undo" disabled>↶ Geri al</button>
         <label class="brush">Fırça <input type="range" id="brush" min="3" max="80" value="18" /></label>
         <label class="check"><input type="checkbox" id="nums" checked /> Numaralar</label>

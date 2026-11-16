@@ -12,6 +12,13 @@ export interface Calisma {
   detail: Detail | null;
   /** 0..1 (oyun aşamasında hesaplanacak) */
   progress: number;
+  /** galeri kartındaki küçük resim (JPEG baytları); henüz yoksa boş */
+  thumbnail?: ArrayBuffer;
+}
+
+/** Kapak baytlarını galeride gösterilebilecek bir Blob'a çevirir. */
+export function kapakBlob(c: Calisma): Blob | null {
+  return c.thumbnail ? new Blob([c.thumbnail], { type: 'image/jpeg' }) : null;
 }
 
 /**
@@ -35,14 +42,15 @@ export interface AcikCalisma {
 }
 
 function baslik(tarih: number): string {
-  return new Date(tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return 'Resim · ' + new Date(tarih).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
 }
 
 /** Yeni bir çalışma oluşturur ve id'sini döndürür. */
-export async function calismaOlustur(template: Template, detail: Detail): Promise<string> {
+export async function calismaOlustur(template: Template, detail: Detail, kapak?: Blob): Promise<string> {
   const id = crypto.randomUUID();
   const simdi = Date.now();
   const calisma: Calisma = { id, title: baslik(simdi), createdAt: simdi, updatedAt: simdi, detail, progress: 0 };
+  if (kapak) calisma.thumbnail = await kapak.arrayBuffer();
   await islem(['works', 'templates', 'progress', 'settings'], 'readwrite', (tx) => {
     tx.objectStore('works').put(calisma);
     tx.objectStore('templates').put(template, id);
@@ -71,15 +79,46 @@ export async function calismaAc(id: string): Promise<AcikCalisma | null> {
   return { calisma, template, paint: blobaCevir(progress?.paint) };
 }
 
-export async function boyaKaydet(id: string, paint: Blob): Promise<void> {
+export async function boyaKaydet(id: string, paint: Blob, kapak?: Blob): Promise<void> {
   const bayt = await paint.arrayBuffer();
+  const kapakBayt = kapak ? await kapak.arrayBuffer() : undefined;
   await islem(['works', 'progress'], 'readwrite', (tx) => {
     tx.objectStore('progress').put({ paint: bayt } satisfies KayitliBoya, id);
-    const w = tx.objectStore('works').get(id);
-    w.onsuccess = () => {
-      if (w.result) tx.objectStore('works').put({ ...w.result, updatedAt: Date.now() });
+    calismayiGuncelle(tx, id, (c) => ({ ...c, updatedAt: Date.now(), ...(kapakBayt ? { thumbnail: kapakBayt } : {}) }));
+  });
+}
+
+/** Sadece kapağı günceller (tarih değişmez; galerideki sıra bozulmasın). */
+export async function kapakKaydet(id: string, kapak: Blob): Promise<void> {
+  const bayt = await kapak.arrayBuffer();
+  await islem('works', 'readwrite', (tx) => calismayiGuncelle(tx, id, (c) => ({ ...c, thumbnail: bayt })));
+}
+
+export async function yenidenAdlandir(id: string, title: string): Promise<void> {
+  const temiz = title.trim().slice(0, 60);
+  if (!temiz) return;
+  await islem('works', 'readwrite', (tx) => calismayiGuncelle(tx, id, (c) => ({ ...c, title: temiz })));
+}
+
+/** Çalışmayı şablonu ve boyasıyla birlikte siler. */
+export async function calismaSil(id: string): Promise<void> {
+  await islem(['works', 'templates', 'progress', 'settings'], 'readwrite', (tx) => {
+    tx.objectStore('works').delete(id);
+    tx.objectStore('templates').delete(id);
+    tx.objectStore('progress').delete(id);
+    const son = tx.objectStore('settings').get('sonCalisma');
+    son.onsuccess = () => {
+      if (son.result === id) tx.objectStore('settings').delete('sonCalisma');
     };
   });
+}
+
+function calismayiGuncelle(tx: IDBTransaction, id: string, fn: (c: Calisma) => Calisma): void {
+  const depo = tx.objectStore('works');
+  const istek = depo.get(id);
+  istek.onsuccess = () => {
+    if (istek.result) depo.put(fn(istek.result));
+  };
 }
 
 /** Son güncellenenden eskiye bütün çalışmalar. */

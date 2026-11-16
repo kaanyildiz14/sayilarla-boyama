@@ -7,15 +7,16 @@ Galerideki bir fotoğrafı numaralı boyama şablonuna çeviren ve boyamayı da 
 
 **Uygulamayı aç:** https://kaanyildiz14.github.io/sayilarla-boyama/
 
-| Fotoğraf seç | Boya |
-|---|---|
-| ![Başlangıç ekranı](docs/ekran-baslangic.jpg) | ![Boyama ekranı](docs/ekran-boyama.jpg) |
+| Galerim | Fotoğraf seç | Boya |
+|---|---|---|
+| ![Galerim](docs/ekran-galeri.jpg) | ![Yeni resim ekranı](docs/ekran-baslangic.jpg) | ![Boyama ekranı](docs/ekran-boyama.jpg) |
 
 ## Ne yapar?
 
 - **Şablon çıkarır:** Fotoğrafı 16, 24 ya da 32 renge indirir, aynı renkteki alanları bölgelere ayırır, sınırları çizer ve her bölgeye renk numarasını yazar.
 - **Taşırmadan boyatır:** Fırça darbesi başladığı bölgenin dışına çıkamaz. Fırça ne kadar kalın olursa olsun boya kenara taşmaz.
 - **iPad'e uygundur:** Apple Pencil ile boyanır, iki parmakla yakınlaştırılır ve kaydırılır. Kalem kullanıldıktan sonra parmak sadece kaydırma yapar, böylece avuç içi yanlışlıkla boya bırakmaz.
+- **Galerim:** Bütün resimlerin kart kart durur; her kartta resmin o anki hali görünür. Adı değiştirilebilir, silinebilir.
 - **Kaldığın yerden devam eder:** Boyama otomatik kaydedilir; sayfayı kapatıp açınca devam edilir.
 - **Kaydeder:** Bitmiş resim ya da boş şablon (altında renk kartelasıyla) PNG olarak galeriye kaydedilir.
 
