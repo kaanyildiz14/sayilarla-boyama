@@ -82,3 +82,47 @@ describe('ilerleme', () => {
     expect(i.sonrakiRenk(0)).toBeNull();
   });
 });
+
+describe('yardımcılar', async () => {
+  const y = await import('../src/oyun/yardimcilar');
+  const bolgeler = [
+    { color: 0, labelX: 10, labelY: 10, labelR: 5 },
+    { color: 1, labelX: 50, labelY: 50, labelR: 5 },
+    { color: 0, labelX: 90, labelY: 90, labelR: 5 },
+    { color: 0, labelX: 40, labelY: 45, labelR: 2 },
+  ];
+
+  it('seçili renkte bitmemiş bölgeleri bulur', () => {
+    expect(y.kalanBolgeler(bolgeler, [0, 0, 1, 0], 0)).toEqual([0, 3]);
+  });
+
+  it('bulucu, noktaya en yakın bölgeyi seçer; aday yoksa null', () => {
+    expect(y.enYakinBolge(bolgeler, [0, 2, 3], 80, 80)).toBe(2);
+    expect(y.enYakinBolge(bolgeler, [0, 2, 3], 45, 45)).toBe(3);
+    expect(y.enYakinBolge(bolgeler, [], 0, 0)).toBeNull();
+  });
+
+  it('değnek yalnızca görünen alandaki adayları alır', () => {
+    expect(y.gorunenBolgeler(bolgeler, [0, 2, 3], { x0: 0, y0: 0, x1: 50, y1: 50 })).toEqual([0, 3]);
+  });
+
+  it('numara uzaktan ve bitince gizlenir', () => {
+    expect(y.numaraGorunurMu(5, 2, false)).toBe(true);
+    expect(y.numaraGorunurMu(5, 1, false)).toBe(false);
+    expect(y.numaraGorunurMu(5, 2, true)).toBe(false);
+  });
+
+  it('yazı boyutu sınırlar içinde kalır', () => {
+    expect(y.numaraBoyutu(1, 1, 1)).toBe(9);
+    expect(y.numaraBoyutu(100, 1, 2)).toBe(22);
+  });
+
+  it('bulucu ölçeği küçük bölgede numarayı okunur yapar, büyük bölgeyi sığdırır', () => {
+    // küçük bölge: yarıçap 4 → en az 16/4 = 4 kat
+    expect(y.odakOlcegi(10, 10, 4, 800, 0.3)).toBeGreaterThanOrEqual(4);
+    // büyük bölge: 2000 px'lik kutu 800 px ekranın %40'ına sığmalı
+    expect(y.odakOlcegi(2000, 1000, 200, 800, 0.1)).toBeCloseTo(0.16, 2);
+    // hiçbir zaman sığdır ölçeğinin altına inmez
+    expect(y.odakOlcegi(2000, 1000, 200, 800, 0.3)).toBe(0.3);
+  });
+});

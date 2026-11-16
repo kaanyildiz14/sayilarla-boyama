@@ -11,6 +11,7 @@
 
 import { makeCanvas } from './katmanlar';
 import type { Template } from '../islem/sablon';
+import { numaraBoyutu, numaraGorunurMu, odakOlcegi, type Gorus } from '../oyun/yardimcilar';
 
 interface Stroke {
   region: number;
@@ -24,7 +25,7 @@ interface Stroke {
 }
 
 interface UndoPatch {
-  region: number;
+  regions: number[];
   x: number;
   y: number;
   data: ImageData;
@@ -38,6 +39,9 @@ export type Arac = 'dokun' | 'firca';
 const DOKUNMA_TOLERANSI = 8;
 
 const MAX_UNDO = 25;
+/** vurgulanan bölgelerin koyuluğu (0-255) */
+const VURGU_ALFA = 60;
+const YANIP_SURE = 1400;
 
 export class Painter {
   color = '#000000';
@@ -51,6 +55,8 @@ export class Painter {
   /** fırça kalınlığı, ekran pikseli cinsinden */
   brush = 14;
   showNumbers = true;
+  /** bölge başına bitti bayrağı (ekran ilerlemeden verir); biten bölgenin numarası gizlenir */
+  bitti: Uint8Array | null = null;
   onChange: () => void = () => {};
 
   private ctx: CanvasRenderingContext2D;
@@ -69,16 +75,26 @@ export class Painter {
   private undoStack: UndoPatch[] = [];
   private frame = 0;
   private fitted = false;
+  private bolgeRengi: Uint16Array;
+  /** seçili rengin bitmemiş bölgelerini gösteren yarı saydam katman */
+  private vurgu: HTMLCanvasElement;
+  private vurguVeri: ImageData;
+  private vurguRenk: number | null = null;
+  /** bulucunun yanıp söndürdüğü bölge */
+  private yanip: { region: number; mask: HTMLCanvasElement; baslangic: number } | null = null;
+  private animasyon = 0;
 
   constructor(
     private canvas: HTMLCanvasElement,
     private t: Template,
     readonly paint: HTMLCanvasElement,
     private lines: HTMLCanvasElement,
-    private numbers: HTMLCanvasElement,
   ) {
     this.ctx = canvas.getContext('2d')!;
     this.paintCtx = paint.getContext('2d', { willReadFrequently: true })!;
+    this.bolgeRengi = Uint16Array.from(t.regions, (r) => r.color);
+    this.vurgu = makeCanvas(t.width, t.height);
+    this.vurguVeri = this.vurgu.getContext('2d')!.createImageData(t.width, t.height);
     canvas.addEventListener('pointerdown', this.down);
     canvas.addEventListener('pointermove', this.move);
     canvas.addEventListener('pointerup', this.up);
@@ -97,7 +113,7 @@ export class Painter {
     if (!p) return;
     this.paintCtx.putImageData(p.data, p.x, p.y);
     this.render();
-    this.onBolge(p.region);
+    for (const r of p.regions) this.onBolge(r);
     this.onChange();
   }
 
@@ -121,7 +137,7 @@ export class Painter {
     cx.fillRect(0, 0, c.width, c.height);
     cx.globalCompositeOperation = 'destination-in';
     cx.drawImage(mask, 0, 0);
-    this.yamaKaydet(region, reg.minX, reg.minY, c.width, c.height);
+    this.yamaKaydet([region], reg.minX, reg.minY, c.width, c.height);
     this.paintCtx.drawImage(c, reg.minX, reg.minY);
     this.render();
     this.onBolge(region);
@@ -129,9 +145,112 @@ export class Painter {
     return true;
   }
 
-  private yamaKaydet(region: number, x: number, y: number, w: number, h: number): void {
-    this.undoStack.push({ region, x, y, data: this.paintCtx.getImageData(x, y, w, h) });
+  /** Sihirli değnek: bölgeleri tek seferde doldurur; tek "geri al" ile geri gelir. */
+  toplucaDoldur(regions: number[]): void {
+    if (!regions.length) return;
+    let x0 = Infinity, y0 = Infinity, x1 = -1, y1 = -1;
+    for (const r of regions) {
+      const b = this.t.regions[r];
+      x0 = Math.min(x0, b.minX); y0 = Math.min(y0, b.minY);
+      x1 = Math.max(x1, b.maxX); y1 = Math.max(y1, b.maxY);
+    }
+    this.yamaKaydet(regions, x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+    for (const r of regions) {
+      const reg = this.t.regions[r];
+      const mask = this.mask(r);
+      const c = makeCanvas(mask.width, mask.height);
+      const cx = c.getContext('2d')!;
+      cx.fillStyle = this.color;
+      cx.fillRect(0, 0, c.width, c.height);
+      cx.globalCompositeOperation = 'destination-in';
+      cx.drawImage(mask, 0, 0);
+      this.paintCtx.drawImage(c, reg.minX, reg.minY);
+    }
+    this.render();
+    for (const r of regions) this.onBolge(r);
+    this.onChange();
+  }
+
+  private yamaKaydet(regions: number[], x: number, y: number, w: number, h: number): void {
+    this.undoStack.push({ regions, x, y, data: this.paintCtx.getImageData(x, y, w, h) });
     if (this.undoStack.length > MAX_UNDO) this.undoStack.shift();
+  }
+
+  // ---- vurgulama ----
+
+  /** Seçili rengin bitmemiş bölgelerini koyulaştırır (null: vurgu yok). */
+  vurguAyarla(renk: number | null): void {
+    this.vurguRenk = renk;
+    const d = this.vurguVeri.data;
+    const map = this.t.regionMap;
+    for (let p = 0; p < map.length; p++) d[p * 4 + 3] = this.vurguluMu(map[p]) ? VURGU_ALFA : 0;
+    this.vurgu.getContext('2d')!.putImageData(this.vurguVeri, 0, 0);
+    this.render();
+  }
+
+  /** Bir bölgenin durumu değişince (bitti / bitmedi) yalnızca onun kutusunu yeniler. */
+  vurguBolge(region: number): void {
+    if (this.vurguRenk === null || this.bolgeRengi[region] !== this.vurguRenk) return;
+    const b = this.t.regions[region];
+    const W = this.t.width, d = this.vurguVeri.data, map = this.t.regionMap;
+    const goster = this.vurguluMu(region) ? VURGU_ALFA : 0;
+    for (let y = b.minY; y <= b.maxY; y++)
+      for (let x = b.minX; x <= b.maxX; x++) {
+        const p = y * W + x;
+        if (map[p] === region) d[p * 4 + 3] = goster;
+      }
+    this.vurgu.getContext('2d')!.putImageData(this.vurguVeri, 0, 0, b.minX, b.minY, b.maxX - b.minX + 1, b.maxY - b.minY + 1);
+    this.render();
+  }
+
+  private vurguluMu(region: number): boolean {
+    return this.vurguRenk !== null && this.bolgeRengi[region] === this.vurguRenk && !this.bitti?.[region];
+  }
+
+  // ---- bulucu ----
+
+  /** Görünen alan, resim koordinatlarında. */
+  gorus(): Gorus {
+    const w = this.canvas.width / this.dpr, h = this.canvas.height / this.dpr;
+    return { x0: -this.tx / this.scale, y0: -this.ty / this.scale, x1: (w - this.tx) / this.scale, y1: (h - this.ty) / this.scale };
+  }
+
+  /** Kamerayı bölgeye kaydırıp yakınlaştırır, sonra bölgeyi yanıp söndürür. */
+  odakla(region: number): void {
+    const b = this.t.regions[region];
+    const w = this.canvas.width / this.dpr, h = this.canvas.height / this.dpr;
+    const sigdir = Math.min(w / this.t.width, h / this.t.height) * 0.96;
+    const hedefOlcek = odakOlcegi(b.maxX - b.minX + 1, b.maxY - b.minY + 1, b.labelR, Math.min(w, h), sigdir);
+    const hedef = { s: hedefOlcek, tx: w / 2 - b.labelX * hedefOlcek, ty: h / 2 - b.labelY * hedefOlcek };
+    const bas = { s: this.scale, tx: this.tx, ty: this.ty };
+    const sure = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 450;
+    const t0 = performance.now();
+    cancelAnimationFrame(this.animasyon);
+    const adim = (simdi: number) => {
+      const k = sure ? Math.min(1, (simdi - t0) / sure) : 1;
+      const e = 1 - (1 - k) ** 3; // yavaşlayarak dur
+      this.scale = bas.s + (hedef.s - bas.s) * e;
+      this.tx = bas.tx + (hedef.tx - bas.tx) * e;
+      this.ty = bas.ty + (hedef.ty - bas.ty) * e;
+      this.draw();
+      if (k < 1) this.animasyon = requestAnimationFrame(adim);
+      else this.yanSon(region);
+    };
+    this.animasyon = requestAnimationFrame(adim);
+  }
+
+  private yanSon(region: number): void {
+    this.yanip = { region, mask: this.mask(region), baslangic: performance.now() };
+    const dongu = () => {
+      if (!this.yanip) return;
+      this.draw();
+      if (performance.now() - this.yanip.baslangic < YANIP_SURE) requestAnimationFrame(dongu);
+      else {
+        this.yanip = null;
+        this.render();
+      }
+    };
+    requestAnimationFrame(dongu);
   }
 
   private bolgeAt(screen: { x: number; y: number }): number | null {
@@ -169,8 +288,56 @@ export class Painter {
     ctx.fillRect(0, 0, this.t.width, this.t.height);
     ctx.drawImage(this.paint, 0, 0);
     if (this.stroke) ctx.drawImage(this.stroke.canvas, this.stroke.x0, this.stroke.y0);
+    if (this.vurguRenk !== null) ctx.drawImage(this.vurgu, 0, 0);
+    if (this.yanip) {
+      // üç kez yanıp sönen turuncu
+      const t = (performance.now() - this.yanip.baslangic) / YANIP_SURE;
+      const b = this.t.regions[this.yanip.region];
+      ctx.globalAlpha = 0.55 * Math.abs(Math.sin(t * Math.PI * 3));
+      ctx.drawImage(this.yanipKatmani(), b.minX, b.minY);
+      ctx.globalAlpha = 1;
+    }
     ctx.drawImage(this.lines, 0, 0);
-    if (this.showNumbers) ctx.drawImage(this.numbers, 0, 0);
+    if (this.showNumbers) this.numaralariCiz();
+  }
+
+  private yanipOnbellek: { region: number; c: HTMLCanvasElement } | null = null;
+  private yanipKatmani(): HTMLCanvasElement {
+    const y = this.yanip!;
+    if (this.yanipOnbellek?.region === y.region) return this.yanipOnbellek.c;
+    const c = makeCanvas(y.mask.width, y.mask.height);
+    const cx = c.getContext('2d')!;
+    cx.fillStyle = '#e8590c';
+    cx.fillRect(0, 0, c.width, c.height);
+    cx.globalCompositeOperation = 'destination-in';
+    cx.drawImage(y.mask, 0, 0);
+    this.yanipOnbellek = { region: y.region, c };
+    return c;
+  }
+
+  /** Numaralar ekran pikselinde çizilir: yakınlaştıkça belirir, bölge bitince kaybolur. */
+  private numaralariCiz(): void {
+    const { ctx } = this;
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.fillStyle = '#5f5d58';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const w = this.canvas.width / this.dpr, h = this.canvas.height / this.dpr;
+    let sonBoyut = 0;
+    const regions = this.t.regions;
+    for (let r = 0; r < regions.length; r++) {
+      const b = regions[r];
+      if (!numaraGorunurMu(b.labelR, this.scale, !!this.bitti?.[r])) continue;
+      const x = this.tx + (b.labelX + 0.5) * this.scale, y = this.ty + (b.labelY + 0.5) * this.scale;
+      if (x < -30 || y < -30 || x > w + 30 || y > h + 30) continue;
+      const yazi = String(b.color + 1);
+      const boyut = Math.round(numaraBoyutu(b.labelR, this.scale, yazi.length));
+      if (boyut !== sonBoyut) {
+        ctx.font = `${boyut}px -apple-system, "Helvetica Neue", Arial, sans-serif`;
+        sonBoyut = boyut;
+      }
+      ctx.fillText(yazi, x, y);
+    }
   }
 
   private resize(): void {
@@ -278,7 +445,7 @@ export class Painter {
   private commitStroke(): void {
     const s = this.stroke;
     if (!s) return;
-    this.yamaKaydet(s.region, s.x0, s.y0, s.canvas.width, s.canvas.height);
+    this.yamaKaydet([s.region], s.x0, s.y0, s.canvas.width, s.canvas.height);
     this.paintCtx.drawImage(s.canvas, s.x0, s.y0);
     this.stroke = null;
     this.render();

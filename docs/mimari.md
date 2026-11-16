@@ -20,6 +20,7 @@ Galerim ──(＋ Yeni resim)──▶ Fotoğraf + detay ──▶ Hazırlanıy
 | `src/islem/` | Görüntü işleme (saf TS): şablon, k-means, renk, filtre, bölge; `isci.ts` Web Worker, `calistir.ts` fotoğrafı hazırlayıp işçiyi çalıştırır |
 | `src/boyama/painter.ts` | Boyama tuvali: taşmayan fırça, dokun-doldur, yakınlaştırma, geri al |
 | `src/oyun/kapsama.ts` | Bir bölgenin ne kadarının doğru renkle boyandığı (boya piksellerinden) |
+| `src/oyun/yardimcilar.ts` | Bulucu (en yakın bölge), değnek (görünen bölgeler), numara görünürlüğü ve boyutu, bulucu kamera ölçeği |
 | `src/oyun/ilerleme.ts` | Biten bölgeler, renk başına kalan, yüzde, renk/resim tamamlanma olayları |
 | `src/boyama/katmanlar.ts` | Çizgi ve numara katmanları, indirilebilir şablon, bitmiş resim |
 | `src/depo/` | IndexedDB: bağlantı, sürüm göçü (`db.ts`), çalışmalar (`calismalar.ts`) |
@@ -53,6 +54,8 @@ Boyama ayrı bir tuvalde (`paint`) tutulur. Ekrana sırasıyla beyaz zemin, boya
 ## Oyun kuralları ve ilerleme
 
 İlerleme ayrı bir "bitti" listesi olarak saklanmaz; **boyanın kendisinden** hesaplanır. Çalışma açılırken bütün boya katmanı tek geçişte taranır (`tumKapsamalar`), sonra her fırça darbesi, doldurma ya da geri almada yalnızca o bölgenin kutusu yeniden sayılır (`bolgeKapsamasi`). Böylece geri alma, eski kayıtlar ve fırçayla elle boyama aynı kuralla çalışır; kayıt ile ekran birbirinden kopamaz. Galeri için yalnızca özet (`progress`, `completedAt`) saklanır.
+
+**Ekrana çizim sırası:** beyaz zemin → boya → o anki fırça darbesi → vurgu katmanı (seçili rengin boş bölgeleri, yarı saydam) → bulucunun yanıp sönen bölgesi → çizgiler → numaralar. Numaralar önceden çizilmiş bir resim değil; her karede **ekran pikselinde** yazılır. Böylece yakınlaşınca keskin kalır, uzaktayken (bölge ekranda 6 pikselden küçükse) ve bölge bitince gizlenir. Vurgu katmanı renk seçilince bir kez üretilir, sonra yalnızca durumu değişen bölgenin kutusu yenilenir.
 
 ## En zor üç kısım
 
