@@ -230,11 +230,12 @@ function tamamlandiKapat(): void {
 
 function konfeti(): void {
   const kap = $('done').querySelector('.confetti')!;
-  const parcalar = ['🎉', '🎨', '✨', '🖌️', '⭐'];
+  // resmin kendi renklerinden küçük kâğıt parçaları
+  const renkler = aktifTemplate?.palette.map((p) => p.hex) ?? ['#c8553d'];
   kap.replaceChildren(
-    ...Array.from({ length: 24 }, (_, i) => {
+    ...Array.from({ length: 28 }, (_, i) => {
       const s = document.createElement('span');
-      s.textContent = parcalar[i % parcalar.length];
+      s.style.background = renkler[(i * 5) % renkler.length];
       s.style.left = `${(i * 37) % 100}%`;
       s.style.animationDuration = `${2.2 + ((i * 13) % 10) / 5}s`;
       s.style.animationDelay = `${((i * 7) % 10) / 10}s`;
@@ -296,13 +297,13 @@ function degnek(): void {
   const adaylar = kalanBolgeler(aktifTemplate.regions, ilerleme.bitti, seciliRenk);
   const gorunen = gorunenBolgeler(aktifTemplate.regions, adaylar, painter.gorus());
   if (!gorunen.length) {
-    bildir(adaylar.length ? `Ekranda boş ${seciliRenk + 1} yok. 🔍 ile bul` : `${seciliRenk + 1} numarada kalan bölge yok`);
+    bildir(adaylar.length ? `Ekranda boş ${seciliRenk + 1} yok. Bul düğmesiyle ara` : `${seciliRenk + 1} numarada kalan bölge yok`);
     return;
   }
   const renk = seciliRenk;
   painter.toplucaDoldur(gorunen);
   // renk o an bittiyse "tamam" bildirimi zaten çıktı; üstüne yazma
-  if (!ilerleme.renkTamamMi(renk)) bildir(`🪄 ${gorunen.length} bölge boyandı`);
+  if (!ilerleme.renkTamamMi(renk)) bildir(`${gorunen.length} bölge boyandı`);
 }
 
 function kayitliArac(): Arac {

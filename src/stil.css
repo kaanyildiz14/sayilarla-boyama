@@ -11,7 +11,13 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-* { box-sizing: border-box; }
+/* touch-action: iOS Safari çift dokunuşta sayfayı büyütmesin (viewport'taki
+   user-scalable=no'yu dikkate almıyor). Tuval kendi hareketlerini kendi yönetir. */
+* { box-sizing: border-box; touch-action: manipulation; }
+.ikon {
+  width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round;
+  stroke-linejoin: round; vertical-align: -0.2em; flex: none;
+}
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); }
 body { overscroll-behavior: none; -webkit-user-select: none; user-select: none; }
 [hidden] { display: none !important; }
@@ -141,7 +147,7 @@ h1 { margin: 0; font-size: 26px; font-weight: 600; }
 
 .stage-tools { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; gap: 10px; }
 .stage-tools button {
-  width: 52px; height: 52px; border-radius: 50%; font-size: 22px; padding: 0;
+  width: 52px; height: 52px; border-radius: 50%; font-size: 24px; padding: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); display: flex; align-items: center; justify-content: center;
 }
 
@@ -160,7 +166,7 @@ h1 { margin: 0; font-size: 26px; font-weight: 600; }
 .done-actions { display: flex; gap: 8px; }
 .done-actions button { flex: 1; }
 .confetti { position: absolute; inset: 0; pointer-events: none; }
-.confetti span { position: absolute; top: -24px; font-size: 22px; }
+.confetti span { position: absolute; top: -24px; width: 10px; height: 16px; border-radius: 2px; }
 @media (prefers-reduced-motion: no-preference) {
   .confetti span { animation: dus linear forwards; }
 }

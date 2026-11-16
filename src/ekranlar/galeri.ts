@@ -64,7 +64,6 @@ function kart(c: Calisma): HTMLLIElement {
   } else {
     const yer = document.createElement('span');
     yer.className = 'placeholder';
-    yer.textContent = '🎨';
     ac.appendChild(yer);
   }
   ac.addEventListener('click', () => olaylar.ac(c.id));

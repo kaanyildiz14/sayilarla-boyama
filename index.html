@@ -18,7 +18,7 @@
     <main id="gallery" class="screen">
       <header class="gallery-head">
         <h1>Galerim</h1>
-        <button id="new" class="primary">＋ Yeni resim</button>
+        <button id="new" class="primary"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg> Yeni resim</button>
       </header>
       <p id="gallery-error" class="error" hidden></p>
       <div id="empty" class="empty" hidden>
@@ -66,31 +66,31 @@
           <div class="progress-bar"><span id="progress-fill"></span></div>
           <span id="progress-text">%0</span>
         </div>
-        <button id="undo" disabled>↶ Geri al</button>
+        <button id="undo" disabled><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg> Geri al</button>
         <div class="segmented" role="group" aria-label="Araç">
-          <button id="tool-tap" aria-pressed="true" title="Bölgeye dokun, tamamı dolsun">👆 Dokun</button>
-          <button id="tool-brush" aria-pressed="false" title="Fırçayla boya (taşmaz)">✏️ Fırça</button>
+          <button id="tool-tap" aria-pressed="true" title="Bölgeye dokun, tamamı dolsun"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8.5"/></svg> Dokun</button>
+          <button id="tool-brush" aria-pressed="false" title="Fırçayla boya (taşmaz)"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l4-1L19 8l-3-3L5 16l-1 4z"/><path d="M14 7l3 3"/></svg> Fırça</button>
         </div>
         <label class="brush">Fırça <input type="range" id="brush" min="3" max="80" value="18" /></label>
         <label class="check"><input type="checkbox" id="nums" checked /> Numaralar</label>
         <button id="fit">Sığdır</button>
         <span class="spacer"></span>
         <span id="saved" class="saved"></span>
-        <button id="replay-open" hidden>▶ İzle</button>
+        <button id="replay-open" hidden><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> İzle</button>
         <button id="dl-template">Şablonu indir</button>
         <button id="dl-final" class="primary">Resmi kaydet</button>
       </header>
-      <div id="stage"><canvas id="canvas"></canvas><div class="stage-tools"><button id="finder" title="Bu renkte kalan en yakın bölgeyi bul" aria-label="Bul">🔍</button><button id="wand" title="Ekranda görünen bu renkteki bütün bölgeleri boya" aria-label="Sihirli değnek">🪄</button></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div></div>
+      <div id="stage"><canvas id="canvas"></canvas><div class="stage-tools"><button id="finder" title="Bu renkte kalan en yakın bölgeyi bul" aria-label="Bul"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button><button id="wand" title="Ekranda görünen bu renkteki bütün bölgeleri boya" aria-label="Sihirli değnek"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20 15 9"/><path d="M17 3v4M15 5h4M20 11v3M18.5 12.5h3M9 3v2M8 4h2"/></svg></button></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div></div>
       <footer id="palette" aria-label="Renkler"></footer>
 
       <div id="done" class="done" role="dialog" aria-modal="true" aria-labelledby="done-title" hidden>
         <div class="confetti" aria-hidden="true"></div>
         <div class="done-card">
-          <h2 id="done-title">🎉 Tamamlandı!</h2>
+          <h2 id="done-title">Tamamlandı!</h2>
           <p id="done-text" class="note"></p>
           <canvas id="replay"></canvas>
           <div class="done-actions">
-            <button id="replay-again">↻ Tekrar oynat</button>
+            <button id="replay-again"><svg class="ikon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 3-6.2"/><path d="M4 4v5h5"/></svg> Tekrar oynat</button>
             <button id="done-save" class="primary">Resmi kaydet</button>
           </div>
           <div class="done-actions">
