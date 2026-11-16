@@ -81,3 +81,18 @@ Her boyama işi bir hamle olarak kaydedilir: doldurma (`f`: bölge, renk), değn
 | Sade | 16 | 1400 px | 9 px |
 | Orta | 24 | 600 px | 7 px |
 | Detaylı | 32 | 250 px | 5 px |
+
+## Gerçek iOS Safari'de deneme (iPad simülatörü)
+
+Playwright'ın WebKit'i gerçek iOS Safari ile birebir aynı değildir. Sürümden önce Xcode'un iPad simülatöründe elle denenir:
+
+```bash
+npm run build && npx vite preview --port 4179   # derlenmiş sürüm
+xcrun simctl boot "iPad Pro 11-inch (M5)"
+xcrun simctl openurl booted http://localhost:4179/
+xcrun simctl addmedia booted e2e/ornek/manzara.jpg   # fotoğraf arşivine örnek resim
+```
+
+- **Geliştirme sunucusunu (`npm run dev`) simülatörde açma:** Vite'ın canlı yenileme bağlantısı (WebSocket) simülatörün tarayıcı motorunu çökertiyor ("Web Sayfası Çöktü"). Derlenmiş sürümde bu bağlantı yok.
+- Simülatörde bulunan ve düzeltilenler: emoji/metin simgeler soru işareti kutusu çıkıyordu (SVG simgelere geçildi); arayüze iki parmak değince sayfanın tamamı büyüyordu (`touch-action: pan-x pan-y`).
+- Simülatörde denenemeyenler: Apple Pencil, gerçek bellek sınırları, titreşim.

@@ -11,9 +11,11 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* touch-action: iOS Safari çift dokunuşta sayfayı büyütmesin (viewport'taki
-   user-scalable=no'yu dikkate almıyor). Tuval kendi hareketlerini kendi yönetir. */
-* { box-sizing: border-box; touch-action: manipulation; }
+/* iOS Safari, viewport'taki user-scalable=no'yu dikkate almıyor: arayüze iki
+   parmak değince ya da çift dokununca SAYFANIN tamamı büyüyor ve ekran kayıyor.
+   pan-x pan-y: kaydırmaya izin ver, sayfa büyütmeyi (iki parmak ve çift dokunuş)
+   kapat. Tuval kendi yakınlaştırmasını kendi yönetir (touch-action: none). */
+* { box-sizing: border-box; touch-action: pan-x pan-y; }
 .ikon {
   width: 1.15em; height: 1.15em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round;
   stroke-linejoin: round; vertical-align: -0.2em; flex: none;
@@ -31,7 +33,6 @@ button, .file-btn span {
   border-radius: 10px;
   padding: 9px 14px;
   cursor: pointer;
-  touch-action: manipulation;
 }
 button:disabled { opacity: 0.45; cursor: default; }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
