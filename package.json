@@ -8,10 +8,13 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "playwright test"
   },
   "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.65.1",
+    "fake-indexeddb": "^6.2.8",
     "typescript": "^5.9.3",
     "vite": "^6.4.6",
     "vitest": "^3.2.7"

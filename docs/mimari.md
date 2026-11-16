@@ -12,16 +12,26 @@ Başlangıç ──(fotoğraf + detay)──▶ Hazırlanıyor ──▶ Boyama 
 
 | Dosya | Görevi |
 |---|---|
-| `src/main.ts` | Ekranlar arası geçiş, düğmeler, otomatik kayıt zamanlaması |
-| `src/isci.ts` | Web Worker: şablon üretimini arayüzü dondurmadan yapar |
-| `src/islem/sablon.ts` | Şablon üretiminin ana akışı ve detay ayarları |
-| `src/islem/kmeans.ts` | Renk azaltma (k-means++, sabit tohum) |
-| `src/islem/renk.ts` | sRGB → CIELAB, hex |
-| `src/islem/filtre.ts` | Kutu bulanıklığı, çoğunluk filtresi |
-| `src/islem/bolge.ts` | Bağlı bileşenler, bölge birleştirme, uzaklık dönüşümü, numara yeri |
-| `src/cizim.ts` | Çizgi ve numara katmanları, indirilebilir şablon, bitmiş resim |
-| `src/boyama.ts` | Boyama ekranı: taşmayan fırça, yakınlaştırma, geri al |
-| `src/kayit.ts` | IndexedDB ile kaydetme / açma |
+| `src/main.ts` | Giriş: adres (#) değişince doğru ekranı açar |
+| `src/yonlendirme.ts` | `#/` ve `#/boya/<id>` adreslerini çözer / üretir |
+| `src/durum.ts` | Küçük durum kabı (değişince abonelere haber verir) |
+| `src/ekranlar/` | Başlangıç ve boyama ekranları, ekran geçişi |
+| `src/islem/` | Görüntü işleme (saf TS): şablon, k-means, renk, filtre, bölge; `isci.ts` Web Worker, `calistir.ts` fotoğrafı hazırlayıp işçiyi çalıştırır |
+| `src/boyama/painter.ts` | Boyama tuvali: taşmayan fırça, yakınlaştırma, geri al |
+| `src/boyama/katmanlar.ts` | Çizgi ve numara katmanları, indirilebilir şablon, bitmiş resim |
+| `src/depo/` | IndexedDB: bağlantı, sürüm göçü (`db.ts`), çalışmalar (`calismalar.ts`) |
+| `src/platform/` | Web ile mağaza uygulaması arasında farklı çalışan işler (kaydet/paylaş) |
+
+## Kayıt (IndexedDB, sürüm 2)
+
+| Depo | Anahtar | İçerik |
+|---|---|---|
+| `works` | id | başlık, tarihler, detay, ilerleme |
+| `templates` | çalışma id | şablon |
+| `progress` | çalışma id | boya katmanı (PNG baytları) |
+| `settings` | ad | `sonCalisma` |
+
+Sürüm 1'deki tek kayıt, açılışta silinmeden ilk çalışmaya ("İlk boyamam") taşınır. Boya katmanı Blob yerine ham bayt (ArrayBuffer) olarak yazılır; Safari bazı ortamlarda IndexedDB'ye Blob yazamıyor.
 
 ## Veri yapısı
 

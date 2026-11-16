@@ -1,7 +1,7 @@
 // Şablondan görüntü katmanları üretir: sınır çizgileri, numaralar,
 // indirilebilir şablon (kartelalı) ve bitmiş resim.
 
-import type { Template } from './islem/sablon';
+import type { Template } from '../islem/sablon';
 
 export function makeCanvas(w: number, h: number): HTMLCanvasElement {
   const c = document.createElement('canvas');
@@ -91,23 +91,4 @@ export function finalImage(t: Template, paint: HTMLCanvasElement, lines: HTMLCan
 
 export function toBlob(c: HTMLCanvasElement): Promise<Blob> {
   return new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('Resim oluşturulamadı'))), 'image/png'));
-}
-
-/** iPad'de paylaş menüsünü açar ("Resmi Kaydet" ile galeriye gider); bilgisayarda indirir. */
-export async function saveImage(blob: Blob, filename: string): Promise<void> {
-  const file = new File([blob], filename, { type: 'image/png' });
-  const touch = matchMedia('(pointer: coarse)').matches;
-  if (touch && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file] });
-      return;
-    } catch (e) {
-      if ((e as Error).name === 'AbortError') return;
-    }
-  }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
 }

@@ -30,7 +30,7 @@ Fotoğraf hiçbir sunucuya gönderilmez. Bütün işlem tarayıcının içinde y
 5. Her bölgede sınıra en uzak nokta (uzaklık dönüşümü ile) bulunur ve numara oraya yazılır.
 6. Boyarken fırça izi ayrı bir tuvale çizilir ve bölgenin maskesiyle kesilir (`destination-in`).
 
-Ayrıntılar: [docs/mimari.md](docs/mimari.md)
+Ayrıntılar: [docs/mimari.md](docs/mimari.md) · Oyuna dönüşüm planı: [docs/oyun-plani.md](docs/oyun-plani.md)
 
 ## Geliştirme
 
@@ -38,6 +38,7 @@ Ayrıntılar: [docs/mimari.md](docs/mimari.md)
 npm install
 npm run dev      # http://localhost:5173
 npm test         # birim testleri (Vitest)
+npm run test:e2e # uçtan uca testler (Playwright: iPad, iPhone, masaüstü)
 npm run build    # tür denetimi + üretim derlemesi
 ```
 

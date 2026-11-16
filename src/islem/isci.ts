@@ -1,7 +1,7 @@
 // Web Worker: şablon üretimi birkaç saniye sürebilir; arayüz donmasın diye
 // bu iş ayrı bir iş parçacığında yapılır.
 
-import { buildTemplate, DETAIL, type Detail, type Template } from './islem/sablon';
+import { buildTemplate, DETAIL, type Detail, type Template } from './sablon';
 
 export interface WorkerRequest {
   rgba: Uint8ClampedArray;

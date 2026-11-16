@@ -4,8 +4,8 @@
 // darbenin başladığı bölgenin "maskesi" ile kesilir (destination-in). Böylece
 // boya ne kadar kalın olursa olsun bölge sınırının dışına çıkamaz.
 
-import { makeCanvas } from './cizim';
-import type { Template } from './islem/sablon';
+import { makeCanvas } from './katmanlar';
+import type { Template } from '../islem/sablon';
 
 interface Stroke {
   region: number;
