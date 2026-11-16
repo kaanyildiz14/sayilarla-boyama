@@ -1,19 +1,23 @@
 // Ekranlar arası geçiş, adres çubuğundaki # kısmıyla yapılır:
-//   #/            başlangıç
+//   #/            Galerim
+//   #/yeni        yeni resim (fotoğraf seç)
 //   #/boya/<id>   bir çalışmayı boyama
 // Böylece sayfa yenilense de aynı ekrana dönülür; geri tuşu da çalışır.
 
-export type Rota = { ad: 'baslangic' } | { ad: 'boya'; id: string };
+export type Rota = { ad: 'galeri' } | { ad: 'yeni' } | { ad: 'boya'; id: string };
 
 export function rotayiCoz(hash: string): Rota {
   const yol = hash.replace(/^#/, '');
+  if (yol === '/yeni') return { ad: 'yeni' };
   const boya = /^\/boya\/([^/]+)$/.exec(yol);
   if (boya) return { ad: 'boya', id: decodeURIComponent(boya[1]) };
-  return { ad: 'baslangic' };
+  return { ad: 'galeri' };
 }
 
 export function rotaAdresi(r: Rota): string {
-  return r.ad === 'boya' ? `#/boya/${encodeURIComponent(r.id)}` : '#/';
+  if (r.ad === 'boya') return `#/boya/${encodeURIComponent(r.id)}`;
+  if (r.ad === 'yeni') return '#/yeni';
+  return '#/';
 }
 
 export function ayniRota(a: Rota, b: Rota): boolean {

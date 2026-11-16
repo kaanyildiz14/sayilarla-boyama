@@ -1,7 +1,17 @@
 import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { DB_ADI, dbKapat } from '../src/depo/db';
-import { boyaKaydet, calismaAc, calismalariListele, calismaOlustur, sonCalismaId } from '../src/depo/calismalar';
+import {
+  boyaKaydet,
+  calismaAc,
+  calismaSil,
+  calismalariListele,
+  calismaOlustur,
+  kapakBlob,
+  kapakKaydet,
+  sonCalismaId,
+  yenidenAdlandir,
+} from '../src/depo/calismalar';
 import type { Template } from '../src/islem/sablon';
 
 const sablon: Template = {
@@ -68,6 +78,46 @@ describe('çalışmalar', () => {
     const acik = await calismaAc(id);
     expect(acik?.paint).toBeTruthy();
     expect(acik!.calisma.updatedAt).toBeGreaterThan(once);
+  });
+
+  it('kapak oluştururken ve boyarken kaydedilir', async () => {
+    const id = await calismaOlustur(sablon, 'orta', new Blob(['kapak1']));
+    let c = (await calismaAc(id))!.calisma;
+    expect(await kapakBlob(c)!.text()).toBe('kapak1');
+    await boyaKaydet(id, new Blob(['boya']), new Blob(['kapak2']));
+    c = (await calismaAc(id))!.calisma;
+    expect(await kapakBlob(c)!.text()).toBe('kapak2');
+  });
+
+  it('sadece kapak güncellenince tarih değişmez', async () => {
+    const id = await calismaOlustur(sablon, 'orta');
+    const once = (await calismaAc(id))!.calisma;
+    expect(kapakBlob(once)).toBeNull();
+    await new Promise((r) => setTimeout(r, 5));
+    await kapakKaydet(id, new Blob(['k']));
+    const sonra = (await calismaAc(id))!.calisma;
+    expect(sonra.updatedAt).toBe(once.updatedAt);
+    expect(kapakBlob(sonra)).not.toBeNull();
+  });
+
+  it('yeniden adlandırılır; boş ad yok sayılır, uzun ad kısaltılır', async () => {
+    const id = await calismaOlustur(sablon, 'orta');
+    await yenidenAdlandir(id, '  Eşimle düğünde  ');
+    expect((await calismaAc(id))!.calisma.title).toBe('Eşimle düğünde');
+    await yenidenAdlandir(id, '   ');
+    expect((await calismaAc(id))!.calisma.title).toBe('Eşimle düğünde');
+    await yenidenAdlandir(id, 'x'.repeat(100));
+    expect((await calismaAc(id))!.calisma.title).toHaveLength(60);
+  });
+
+  it('silinen çalışma şablonu ve boyasıyla gider; son çalışma da temizlenir', async () => {
+    const a = await calismaOlustur(sablon, 'orta');
+    const b = await calismaOlustur(sablon, 'orta');
+    await boyaKaydet(b, new Blob(['boya']));
+    await calismaSil(b);
+    expect(await calismaAc(b)).toBeNull();
+    expect((await calismalariListele()).map((c) => c.id)).toEqual([a]);
+    expect(await sonCalismaId()).toBeNull();
   });
 
   it('olmayan çalışma için null döner', async () => {

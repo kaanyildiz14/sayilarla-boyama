@@ -1,8 +1,8 @@
 // Boyama ekranı: tuval, araç çubuğu, kartela ve otomatik kayıt.
 
-import { drawLines, drawNumbers, finalImage, makeCanvas, templateImage, toBlob } from '../boyama/katmanlar';
+import { drawLines, drawNumbers, finalImage, kapakResmi, makeCanvas, templateImage, toBlob } from '../boyama/katmanlar';
 import { Painter } from '../boyama/painter';
-import { boyaKaydet, type AcikCalisma } from '../depo/calismalar';
+import { boyaKaydet, kapakKaydet, type AcikCalisma } from '../depo/calismalar';
 import type { Template } from '../islem/sablon';
 import { saveImage } from '../platform';
 import { $, ekraniGoster } from './ekran';
@@ -11,7 +11,11 @@ const KAYIT_GECIKMESI = 1200;
 
 let painter: Painter | null = null;
 let aktifId: string | null = null;
+let aktifTemplate: Template | null = null;
+let aktifCizgiler: HTMLCanvasElement | null = null;
 let kayitZamanlayici = 0;
+/** açılışta üretilen kapak; galeriye dönmeden önce bitmesi beklenir */
+let bekleyenKapak: Promise<void> | null = null;
 
 export function aktifCalismaId(): string | null {
   return aktifId;
@@ -36,7 +40,16 @@ export async function boyamayiAc(acik: AcikCalisma): Promise<void> {
   eski.replaceWith(canvas);
 
   aktifId = calisma.id;
+  aktifTemplate = t;
+  aktifCizgiler = lines;
   painter = new Painter(canvas, t, paint, lines, numbers);
+  // v1.0'dan taşınan çalışmaların henüz kapağı yok
+  if (!calisma.thumbnail) {
+    bekleyenKapak = kapakOlustur()
+      .then((k) => kapakKaydet(calisma.id, k))
+      .catch(() => {})
+      .finally(() => (bekleyenKapak = null));
+  }
   if (import.meta.env.DEV) Object.assign(window, { __painter: painter, __template: t });
   painter.brush = Number($<HTMLInputElement>('brush').value);
   painter.showNumbers = $<HTMLInputElement>('nums').checked;
@@ -55,11 +68,15 @@ export async function boyamayiAc(acik: AcikCalisma): Promise<void> {
   $('dl-final').onclick = async () => saveImage(await toBlob(finalImage(t, paint, lines, true)), 'boyamam.png');
 }
 
+function kapakOlustur(): Promise<Blob> {
+  return toBlob(kapakResmi(aktifTemplate!, painter!.paint, aktifCizgiler!), 'image/jpeg', 0.8);
+}
+
 async function simdiKaydet(): Promise<void> {
   kayitZamanlayici = 0;
   if (!painter || !aktifId) return;
   try {
-    await boyaKaydet(aktifId, await toBlob(painter.paint));
+    await boyaKaydet(aktifId, await toBlob(painter.paint), await kapakOlustur());
     $('saved').textContent = 'Kaydedildi ✓';
   } catch {
     $('saved').textContent = 'Kaydedilemedi';
@@ -68,6 +85,7 @@ async function simdiKaydet(): Promise<void> {
 
 /** Bekleyen otomatik kayıt varsa hemen yazar (ekrandan çıkarken, sekme gizlenirken). */
 export async function bekleyenKaydiYaz(): Promise<void> {
+  if (bekleyenKapak) await bekleyenKapak;
   if (!kayitZamanlayici) return;
   clearTimeout(kayitZamanlayici);
   await simdiKaydet();
