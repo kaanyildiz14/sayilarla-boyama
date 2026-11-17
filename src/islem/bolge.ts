@@ -44,15 +44,28 @@ export function connectedComponents(labels: Uint16Array, w: number, h: number): 
 /**
  * Seçilen bölgeleri, en uzun sınırı paylaştıkları komşunun rengine boyar.
  * Etiket dizisini yerinde değiştirir; kaç bölgenin birleştiğini döndürür.
+ *
+ * Dikkat: iki ince bölge yan yanaysa (ör. güneşin etrafındaki halkalar) ikisi de
+ * birbirinin rengine geçip yer değiştirir ve hiç küçülmez. Bu yüzden önce
+ * birleştirilmeyecek ("sabit") bir komşu aranır; yalnızca o yoksa birleştirilecek
+ * bir komşuya katılır, o da sadece komşu daha büyükse (eşitlikte küçük sıra numaralı).
  */
 export function mergeInto(labels: Uint16Array, w: number, cc: Components, merge: Uint8Array): number {
   const n = labels.length;
-  // küçük bölge -> (komşu renk -> ortak kenar uzunluğu)
-  const contacts = new Map<number, Map<number, number>>();
-  const add = (region: number, neighborColor: number) => {
-    let m = contacts.get(region);
-    if (!m) contacts.set(region, (m = new Map()));
-    m.set(neighborColor, (m.get(neighborColor) ?? 0) + 1);
+  // küçük bölge -> (komşu renk -> ortak kenar uzunluğu), sabit ve birleşen komşular ayrı
+  const sabit = new Map<number, Map<number, number>>();
+  const oynak = new Map<number, Map<number, number>>();
+  const add = (region: number, neighbor: number) => {
+    if (merge[neighbor]) {
+      // yer değiştirmeyi önle: yalnızca kendinden büyük komşuya katıl
+      const buyuk = cc.area[neighbor] > cc.area[region] || (cc.area[neighbor] === cc.area[region] && neighbor < region);
+      if (!buyuk) return;
+    }
+    const hedef = merge[neighbor] ? oynak : sabit;
+    let m = hedef.get(region);
+    if (!m) hedef.set(region, (m = new Map()));
+    const col = cc.color[neighbor];
+    m.set(col, (m.get(col) ?? 0) + 1);
   };
   for (let p = 0; p < n; p++) {
     const r = cc.map[p];
@@ -60,23 +73,28 @@ export function mergeInto(labels: Uint16Array, w: number, cc: Components, merge:
     if (x < w - 1) {
       const q = cc.map[p + 1];
       if (q !== r) {
-        if (merge[r]) add(r, cc.color[q]);
-        if (merge[q]) add(q, cc.color[r]);
+        if (merge[r]) add(r, q);
+        if (merge[q]) add(q, r);
       }
     }
     if (p < n - w) {
       const q = cc.map[p + w];
       if (q !== r) {
-        if (merge[r]) add(r, cc.color[q]);
-        if (merge[q]) add(q, cc.color[r]);
+        if (merge[r]) add(r, q);
+        if (merge[q]) add(q, r);
       }
     }
   }
   const target = new Int32Array(cc.count).fill(-1);
-  for (const [region, m] of contacts) {
+  const sec = (m: Map<number, number>) => {
     let best = -1, bestC = -1;
     for (const [col, c] of m) if (c > bestC) { bestC = c; best = col; }
-    target[region] = best;
+    return best;
+  };
+  for (let r = 0; r < cc.count; r++) {
+    if (!merge[r]) continue;
+    const m = sabit.get(r) ?? oynak.get(r);
+    if (m) target[r] = sec(m);
   }
   let merged = 0;
   for (let p = 0; p < n; p++) {

@@ -1,4 +1,4 @@
-// Hamle kaydı: boyarken yapılan her iş (doldurma, fırça darbesi, değnek) sırayla
+// Hamle kaydı: boyarken yapılan her iş (doldurma, fırça, değnek, silgi) sırayla
 // saklanır. Resim bitince bu kayıt baştan oynatılarak "nasıl boyandı" animasyonu
 // gösterilir. Geri alınan hamle kayıttan da silinir.
 
@@ -8,7 +8,11 @@ export type Hamle =
   /** sihirli değnek: bölgeler rs, renk c */
   | { k: 'm'; rs: number[]; c: number }
   /** fırça darbesi: bölge r, renk c, kalınlık w (resim pikseli), noktalar p = [x0,y0,x1,y1,...] */
-  | { k: 's'; r: number; c: number; w: number; p: number[] };
+  | { k: 's'; r: number; c: number; w: number; p: number[] }
+  /** silgi darbesi: bölge r içinde, kalınlık w, noktalar p */
+  | { k: 'e'; r: number; w: number; p: number[] }
+  /** silgiyle dokunma: bölge r'nin boyasının tamamı silinir */
+  | { k: 'x'; r: number };
 
 export interface HamleKaydi {
   /**

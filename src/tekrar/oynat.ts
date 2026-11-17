@@ -22,7 +22,13 @@ export interface Tekrar {
 /** Tek bir adımı tam çözünürlüklü tekrar tuvaline uygular. */
 type Adim = (ctx: CanvasRenderingContext2D) => void;
 
-function maskeliCiz(ctx: CanvasRenderingContext2D, k: TekrarKaynagi, region: number, ciz: (cx: CanvasRenderingContext2D, w: number, h: number) => void): void {
+function maskeliCiz(
+  ctx: CanvasRenderingContext2D,
+  k: TekrarKaynagi,
+  region: number,
+  ciz: (cx: CanvasRenderingContext2D, w: number, h: number) => void,
+  sil = false,
+): void {
   const reg = k.t.regions[region];
   const mask = k.mask(region);
   const c = makeCanvas(mask.width, mask.height);
@@ -30,10 +36,31 @@ function maskeliCiz(ctx: CanvasRenderingContext2D, k: TekrarKaynagi, region: num
   ciz(cx, c.width, c.height);
   cx.globalCompositeOperation = 'destination-in';
   cx.drawImage(mask, 0, 0);
+  // silgide çizilen şekil boyayı kaldırır
+  ctx.globalCompositeOperation = sil ? 'destination-out' : 'source-over';
   ctx.drawImage(c, reg.minX, reg.minY);
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function darbeCiz(cx: CanvasRenderingContext2D, reg: { minX: number; minY: number }, renk: string, w: number, p: number[]): void {
+  cx.strokeStyle = renk;
+  cx.lineWidth = w;
+  cx.lineCap = 'round';
+  cx.lineJoin = 'round';
+  cx.beginPath();
+  cx.moveTo(p[0] - reg.minX, p[1] - reg.minY);
+  for (let i = 2; i < p.length; i += 2) cx.lineTo(p[i] - reg.minX + 0.01, p[i + 1] - reg.minY);
+  if (p.length === 2) cx.lineTo(p[0] - reg.minX + 0.01, p[1] - reg.minY);
+  cx.stroke();
 }
 
 function hamleAdimi(k: TekrarKaynagi, h: Hamle): Adim {
+  if (h.k === 'x')
+    return (ctx) =>
+      maskeliCiz(ctx, k, h.r, (cx, w, hh) => {
+        cx.fillRect(0, 0, w, hh);
+      }, true);
+  if (h.k === 'e') return (ctx) => maskeliCiz(ctx, k, h.r, (cx) => darbeCiz(cx, k.t.regions[h.r], '#000', h.w, h.p), true);
   const renk = k.t.palette[h.c]?.hex ?? '#000';
   const doldur = (ctx: CanvasRenderingContext2D, r: number) =>
     maskeliCiz(ctx, k, r, (cx, w, hh) => {
@@ -42,20 +69,7 @@ function hamleAdimi(k: TekrarKaynagi, h: Hamle): Adim {
     });
   if (h.k === 'f') return (ctx) => doldur(ctx, h.r);
   if (h.k === 'm') return (ctx) => h.rs.forEach((r) => doldur(ctx, r));
-  return (ctx) => {
-    const reg = k.t.regions[h.r];
-    maskeliCiz(ctx, k, h.r, (cx) => {
-      cx.strokeStyle = renk;
-      cx.lineWidth = h.w;
-      cx.lineCap = 'round';
-      cx.lineJoin = 'round';
-      cx.beginPath();
-      cx.moveTo(h.p[0] - reg.minX, h.p[1] - reg.minY);
-      for (let i = 2; i < h.p.length; i += 2) cx.lineTo(h.p[i] - reg.minX + 0.01, h.p[i + 1] - reg.minY);
-      if (h.p.length === 2) cx.lineTo(h.p[0] - reg.minX + 0.01, h.p[1] - reg.minY);
-      cx.stroke();
-    });
-  };
+  return (ctx) => maskeliCiz(ctx, k, h.r, (cx) => darbeCiz(cx, k.t.regions[h.r], renk, h.w, h.p));
 }
 
 /** Eksik kayıtlarda: bölgeyi bitmiş boyadan olduğu gibi kopyalar. */

@@ -4,6 +4,8 @@
 //   dokun  parmak/fare ile dokununca bölge tek seferde dolar (yalnızca doğru renkle);
 //          sürükleyince resim kayar. Apple Pencil her zaman fırça gibi boyar.
 //   firca  parmak/fare da fırça gibi boyar (Pencil kullanıldıysa parmak sadece kaydırır).
+//   silgi  fırça gibi sürülür ama boyayı kaldırır; o da başladığı bölgenin dışına
+//          taşmaz. Sürüklemeden dokununca bölgenin bütün boyası silinir.
 //
 // Taşmayan fırçanın fikri: fırça darbesi önce ayrı bir tuvale çizilir, sonra
 // darbenin başladığı bölgenin "maskesi" ile kesilir (destination-in). Böylece
@@ -27,6 +29,11 @@ interface Stroke {
   points: number[];
   width: number;
   color: number;
+  /** silgi darbesi mi */
+  sil: boolean;
+  /** darbenin başladığı ekran noktası; silgide "dokunma mı sürükleme mi" için */
+  ekranBas: { x: number; y: number };
+  surukledi: boolean;
 }
 
 interface UndoPatch {
@@ -38,7 +45,7 @@ interface UndoPatch {
 
 type Mode = 'idle' | 'stroke' | 'tap' | 'pinch' | 'pan' | 'wait';
 
-export type Arac = 'dokun' | 'firca';
+export type Arac = 'dokun' | 'firca' | 'silgi';
 
 /** Dokunuşun "sürükleme" sayılması için gereken hareket (ekran pikseli) */
 const DOKUNMA_TOLERANSI = 8;
@@ -89,8 +96,8 @@ export class Painter {
   private vurgu: HTMLCanvasElement;
   private vurguVeri: ImageData;
   private vurguRenk: number | null = null;
-  /** bulucunun yanıp söndürdüğü bölge */
-  private yanip: { region: number; mask: HTMLCanvasElement; baslangic: number } | null = null;
+  /** bulucunun / değneğin yanıp söndürdüğü bölgeler; halka: bulucunun hedef işareti */
+  private yanip: { regions: number[]; baslangic: number; halka: boolean } | null = null;
   private animasyon = 0;
 
   constructor(
@@ -177,7 +184,7 @@ export class Painter {
       cx.drawImage(mask, 0, 0);
       this.paintCtx.drawImage(c, reg.minX, reg.minY);
     }
-    this.render();
+    this.yanSon(regions, false);
     this.onHamle({ k: 'm', rs: regions, c: this.colorIndex });
     for (const r of regions) this.onBolge(r);
     this.onChange();
@@ -246,13 +253,19 @@ export class Painter {
       this.ty = bas.ty + (hedef.ty - bas.ty) * e;
       this.draw();
       if (k < 1) this.animasyon = requestAnimationFrame(adim);
-      else this.yanSon(region);
+      else this.yanSon([region], true);
     };
     this.animasyon = requestAnimationFrame(adim);
   }
 
-  private yanSon(region: number): void {
-    this.yanip = { region, mask: this.mask(region), baslangic: performance.now() };
+  /**
+   * Bölgeleri yanıp söndürür. Çizgilerin ÜSTÜNE çizilir: ince bir bölge çizginin
+   * altında kalıp görünmez olmasın. Bulucuda ayrıca hedefin etrafında küçülen bir
+   * halka çıkar; bölge ne kadar küçük olursa olsun yeri belli olur.
+   */
+  private yanSon(regions: number[], halka: boolean): void {
+    this.yanipOnbellek.clear();
+    this.yanip = { regions, baslangic: performance.now(), halka };
     const dongu = () => {
       if (!this.yanip) return;
       this.draw();
@@ -301,29 +314,50 @@ export class Painter {
     ctx.drawImage(this.paint, 0, 0);
     if (this.stroke) ctx.drawImage(this.stroke.canvas, this.stroke.x0, this.stroke.y0);
     if (this.vurguRenk !== null) ctx.drawImage(this.vurgu, 0, 0);
+    ctx.drawImage(this.lines, 0, 0);
     if (this.yanip) {
       // üç kez yanıp sönen turuncu
       const t = (performance.now() - this.yanip.baslangic) / YANIP_SURE;
-      const b = this.t.regions[this.yanip.region];
-      ctx.globalAlpha = 0.55 * Math.abs(Math.sin(t * Math.PI * 3));
-      ctx.drawImage(this.yanipKatmani(), b.minX, b.minY);
+      ctx.globalAlpha = 0.7 * Math.abs(Math.sin(t * Math.PI * 3));
+      for (const r of this.yanip.regions) {
+        const b = this.t.regions[r];
+        ctx.drawImage(this.yanipKatmani(r), b.minX, b.minY);
+      }
       ctx.globalAlpha = 1;
     }
-    ctx.drawImage(this.lines, 0, 0);
     if (this.showNumbers) this.numaralariCiz();
+    if (this.yanip?.halka) this.halkaCiz(this.yanip.regions[0], (performance.now() - this.yanip.baslangic) / YANIP_SURE);
   }
 
-  private yanipOnbellek: { region: number; c: HTMLCanvasElement } | null = null;
-  private yanipKatmani(): HTMLCanvasElement {
-    const y = this.yanip!;
-    if (this.yanipOnbellek?.region === y.region) return this.yanipOnbellek.c;
-    const c = makeCanvas(y.mask.width, y.mask.height);
+  /** Bulucu hedefinin etrafında, dışarıdan içeri küçülen turuncu halka (ekran pikseli). */
+  private halkaCiz(region: number, t: number): void {
+    const { ctx } = this;
+    const b = this.t.regions[region];
+    const x = this.tx + (b.labelX + 0.5) * this.scale, y = this.ty + (b.labelY + 0.5) * this.scale;
+    const ic = Math.max(10, b.labelR * this.scale + 4);
+    const k = (t * 2) % 1; // iki kez küçülür
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+    ctx.globalAlpha = 1 - k * 0.6;
+    ctx.strokeStyle = '#e8590c';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(x, y, ic + 40 * (1 - k), 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  private yanipOnbellek = new Map<number, HTMLCanvasElement>();
+  private yanipKatmani(region: number): HTMLCanvasElement {
+    let c = this.yanipOnbellek.get(region);
+    if (c) return c;
+    const mask = this.mask(region);
+    c = makeCanvas(mask.width, mask.height);
     const cx = c.getContext('2d')!;
     cx.fillStyle = '#e8590c';
     cx.fillRect(0, 0, c.width, c.height);
     cx.globalCompositeOperation = 'destination-in';
-    cx.drawImage(y.mask, 0, 0);
-    this.yanipOnbellek = { region: y.region, c };
+    cx.drawImage(mask, 0, 0);
+    this.yanipOnbellek.set(region, c);
     return c;
   }
 
@@ -436,6 +470,7 @@ export class Painter {
     this.stroke = {
       region, x0: reg.minX, y0: reg.minY, canvas, ctx, mask, last: p, pointerId: e.pointerId,
       points: [], width: this.brush / this.scale, color: this.colorIndex,
+      sil: this.arac === 'silgi', ekranBas: this.local(e), surukledi: false,
     };
     this.mode = 'stroke';
     this.segment(p, p);
@@ -445,7 +480,8 @@ export class Painter {
     const s = this.stroke!;
     const { ctx } = s;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = this.color;
+    // silgi izi beyaz kâğıt gibi görünür; bırakınca boyadan gerçekten kesilir
+    ctx.strokeStyle = s.sil ? '#ffffff' : this.color;
     ctx.lineWidth = s.width;
     if (!s.points.length) s.points.push(Math.round(a.x), Math.round(a.y));
     s.points.push(Math.round(b.x), Math.round(b.y));
@@ -463,10 +499,22 @@ export class Painter {
     const s = this.stroke;
     if (!s) return;
     this.yamaKaydet([s.region], s.x0, s.y0, s.canvas.width, s.canvas.height);
-    this.paintCtx.drawImage(s.canvas, s.x0, s.y0);
+    if (s.sil) {
+      // sürüklemeden dokunduysa bütün bölgeyi, sürüklediyse yalnızca izi sil
+      this.paintCtx.globalCompositeOperation = 'destination-out';
+      this.paintCtx.drawImage(s.surukledi ? s.canvas : s.mask, s.x0, s.y0);
+      this.paintCtx.globalCompositeOperation = 'source-over';
+    } else {
+      this.paintCtx.drawImage(s.canvas, s.x0, s.y0);
+    }
     this.stroke = null;
     this.render();
-    this.onHamle({ k: 's', r: s.region, c: s.color, w: Math.round(s.width * 10) / 10, p: s.points });
+    const w = Math.round(s.width * 10) / 10;
+    this.onHamle(
+      !s.sil ? { k: 's', r: s.region, c: s.color, w, p: s.points }
+      : s.surukledi ? { k: 'e', r: s.region, w, p: s.points }
+      : { k: 'x', r: s.region },
+    );
     this.onBolge(s.region);
     this.onChange();
   }
@@ -541,6 +589,8 @@ export class Painter {
       this.ty += cur.y - prev.y;
       this.render();
     } else if (this.mode === 'stroke' && this.stroke && e.pointerId === this.stroke.pointerId) {
+      const b = this.stroke.ekranBas;
+      if (Math.hypot(cur.x - b.x, cur.y - b.y) > DOKUNMA_TOLERANSI) this.stroke.surukledi = true;
       const events = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
       for (const ev of events.length ? events : [e]) {
         const p = this.toImage(this.local(ev));
