@@ -347,7 +347,8 @@ function degnek(): void {
 
 function kayitliArac(): Arac {
   try {
-    return localStorage.getItem(ARAC_ANAHTARI) === 'firca' ? 'firca' : 'dokun';
+    const a = localStorage.getItem(ARAC_ANAHTARI);
+    return a === 'firca' || a === 'silgi' ? a : 'dokun';
   } catch {
     return 'dokun';
   }
@@ -365,9 +366,12 @@ function aracSec(a: Arac): void {
 
 function aracDugmeleriniGuncelle(): void {
   const a = painter?.arac ?? 'dokun';
-  $('brush-bar').hidden = a !== 'firca'; // fırça boyutu yalnızca fırçada gerekir
+  // boyut çubuğu fırça ve silgide gerekir; ikisi aynı boyutu kullanır
+  $('brush-bar').hidden = a === 'dokun';
+  $('brush-ad').textContent = a === 'silgi' ? 'Silgi' : 'Fırça';
   $('tool-tap').setAttribute('aria-pressed', String(a === 'dokun'));
   $('tool-brush').setAttribute('aria-pressed', String(a === 'firca'));
+  $('tool-eraser').setAttribute('aria-pressed', String(a === 'silgi'));
 }
 
 /** Araç çubuğu düğmeleri bir kez bağlanır; o an açık olan çalışmaya etki eder. */
@@ -391,6 +395,7 @@ export function boyamaAraclariniKur(geri: () => void): void {
   $('wand').addEventListener('click', degnek);
   $('tool-tap').addEventListener('click', () => aracSec('dokun'));
   $('tool-brush').addEventListener('click', () => aracSec('firca'));
+  $('tool-eraser').addEventListener('click', () => aracSec('silgi'));
   $('stage').addEventListener('animationend', () => $('stage').classList.remove('yanlis'));
   $<HTMLInputElement>('brush').addEventListener('input', (e) => {
     if (painter) painter.brush = Number((e.target as HTMLInputElement).value);

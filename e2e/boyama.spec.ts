@@ -347,3 +347,60 @@ test('menü ve ayarlar: tek satır araç çubuğu, fırça çubuğu, otomatik re
   await page.locator('#menu-btn').click();
   await expect(page.locator('#set-oto')).not.toBeChecked();
 });
+
+test('silgi: dokununca bölgeyi siler, sürünce yalnızca izi siler, komşuya taşmaz, geri alınır', async ({ page }) => {
+  await page.goto('/');
+  await page.locator('#empty-new').click();
+  await page.locator('#file').setInputFiles(IKI_RENK);
+  await page.locator('label:has(input[value=sade])').click();
+  await page.locator('#make').click();
+  await expect(page.locator('#paint')).toBeVisible({ timeout: 30_000 });
+
+  const k = (await page.locator('#canvas').boundingBox())!;
+  const sol = { x: k.x + k.width * 0.3, y: k.y + k.height / 2 };
+  const sag = { x: k.x + k.width * 0.7, y: k.y + k.height / 2 };
+  const yerel = (p: { x: number; y: number }): [number, number] => [p.x - k.x, p.y - k.y];
+
+  // iki yarıyı da doldur (renk bitince otomatik ikinci renge geçer)
+  await page.mouse.click(sol.x, sol.y);
+  await expect(page.locator('#progress-text')).toHaveText('%50');
+  await page.mouse.click(sag.x, sag.y);
+  await expect(page.locator('#done')).toBeVisible();
+  await page.locator('#done-close').click();
+
+  // silgiyle dokun: sol bölgenin tamamı silinir, sağ yerinde kalır
+  await page.locator('#tool-eraser').click();
+  await expect(page.locator('#tool-eraser')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#brush-bar')).toBeVisible();
+  await expect(page.locator('#brush-ad')).toHaveText('Silgi');
+  await page.mouse.click(sol.x, sol.y);
+  await expect(page.locator('#progress-text')).toHaveText('%50');
+  await expect.poll(async () => beyazMi((await pikseller(page, [yerel(sol)]))[0])).toBe(true);
+  let [p2] = await pikseller(page, [yerel(sag)]);
+  expect(beyazMi(p2)).toBe(false);
+
+  // geri al: silinen boya geri gelir
+  await page.locator('#undo').click();
+  await expect(page.locator('#progress-text')).toHaveText('✓');
+  await expect(page.locator('#done')).toBeVisible(); // resim yeniden tamamlandı
+  await page.locator('#done-close').click();
+
+  // sürerek sil: soldan başlayıp sağa geçen darbe sağ bölgeye dokunmaz
+  await page.locator('#brush').fill('30');
+  const y = sol.y - k.height * 0.2;
+  await page.mouse.move(sol.x, y);
+  await page.mouse.down();
+  for (let i = 1; i <= 20; i++) await page.mouse.move(sol.x + ((sag.x - sol.x) * i) / 20, y);
+  await page.mouse.up();
+  // çizim bir sonraki karede ekrana gelir
+  await expect.poll(async () => beyazMi((await pikseller(page, [yerel({ x: sol.x + 20, y })]))[0])).toBe(true); // sol bölgede iz silindi
+  [p2] = await pikseller(page, [yerel({ x: sag.x - 5, y })]);
+  expect(beyazMi(p2)).toBe(false); // sağ bölge taşmadan korundu
+  const [altta] = await pikseller(page, [yerel({ x: sol.x, y: sol.y + k.height * 0.2 })]);
+  expect(beyazMi(altta)).toBe(false); // izin dışı boyalı kaldı
+
+  // araç seçimi hatırlanır
+  await page.reload();
+  await expect(page.locator('#paint')).toBeVisible();
+  await expect(page.locator('#tool-eraser')).toHaveAttribute('aria-pressed', 'true');
+});

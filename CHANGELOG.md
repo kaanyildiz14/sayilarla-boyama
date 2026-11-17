@@ -1,5 +1,15 @@
 # Değişiklik günlüğü
 
+## Yayınlanmadı
+
+### Düzeltildi
+- **Görünmeyen bölgeler:** Gökyüzü, güneş çevresi ya da kedi tüyü gibi yumuşak renk geçişlerinde 2–4 piksel genişliğinde ince şeritler kalıyordu. Bunlar çizginin altında kaybolduğu için bulucu gösterse de görünmüyor, sihirli değnek onları boyayınca ekranda bir şey değişmeden "tamam" diyordu. Neden: yan yana ince bölgeler birleştirilirken birbirinin rengine geçip yer değiştiriyordu. Artık önce birleşmeyecek bir komşuya katılıyorlar. Örnek manzarada (Detaylı) kurala uymayan bölge sayısı 17'den 0'a indi. **Eski resimlerin şablonu değişmez; o resmi yeniden oluşturmak gerekir.**
+- **Bulucu:** hedef bölge artık çizgilerin üstünde yanıp söner ve etrafında küçülen turuncu bir halka çıkar; bölge ne kadar küçük olursa olsun yeri görünür.
+- **Sihirli değnek:** boyadığı bölgeleri kısa süre yakıp söndürür; neyin boyandığı belli olur.
+
+### Yeni
+- **Silgi:** sürterek boyayı siler; fırça gibi başladığı bölgenin dışına taşmaz. Sürüklemeden dokununca bölgenin bütün boyası silinir. Boyutu fırça çubuğuyla ayarlanır; Apple Pencil da silgi seçiliyken siler. Geri al ile geri gelir, tekrar animasyonunda da görünür.
+
 ## 2.0.0 (2026-11-17): Oyun
 
 Uygulama, fotoğraftan şablon çıkaran bir araçtan telefonda ve tablette oynanan bir boyama oyununa dönüştü.

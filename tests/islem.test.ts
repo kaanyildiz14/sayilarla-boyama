@@ -91,3 +91,30 @@ describe('şablon', () => {
     expect(t.palette.every((p) => p.g < 80)).toBe(true); // yeşil gürültü palete girmedi
   });
 });
+
+describe('ince bölgeler (renk geçişleri)', () => {
+  // Gökyüzü ya da kedi tüyü gibi yumuşak geçişler, ince halkalara bölünür.
+  // Eskiden yan yana halkalar birbirinin rengine geçip yer değiştiriyor, hiç
+  // birleşmiyordu: ekranda çizginin altında kalan, görünmeyen bölgeler oluşuyordu.
+  const W = 240, H = 240;
+  const rgba = new Uint8ClampedArray(W * H * 4);
+  for (let y = 0; y < H; y++)
+    for (let x = 0; x < W; x++) {
+      const d = Math.hypot(x - W / 2, y - H / 2) / (W * 0.7);
+      const i = (y * W + x) * 4;
+      rgba[i] = 40 + 200 * d;
+      rgba[i + 1] = 90 + 120 * d;
+      rgba[i + 2] = 220 - 100 * d;
+      rgba[i + 3] = 255;
+    }
+  const opts = { colors: 16, minArea: 120, minRadius: 4 };
+  const t = buildTemplate(rgba, W, H, opts);
+
+  it('halka gibi ince bölge kalmaz: her bölgeye numara sığar', () => {
+    const alan = new Uint32Array(t.regions.length);
+    for (const r of t.regionMap) alan[r]++;
+    const kotu = t.regions.filter((r, i) => r.labelR < opts.minRadius || alan[i] < opts.minArea);
+    expect(kotu).toEqual([]);
+    expect(t.regions.length).toBeGreaterThan(1);
+  });
+});
